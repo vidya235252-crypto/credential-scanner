@@ -6,6 +6,7 @@ import report
 
 def scan_repo(owner, repo):
     findings = []
+    skipped_files = []
 
     repo_info = github_fetch.get_repo_info(owner, repo)
     branch = repo_info["default_branch"]
@@ -19,6 +20,7 @@ def scan_repo(owner, repo):
         try:
             content = github_fetch.get_file_content(url)
         except Exception:
+            skipped_files.append(path)
             continue
         
         pattern_matches = patterns.scan_text(content)
@@ -40,9 +42,14 @@ def scan_repo(owner, repo):
                 "method": "entropy"
             })
     
-    return findings
+    return findings, skipped_files
 
 if __name__ == "__main__":
+    remaining, limit = github_fetch.check_rate_limit()
+    print(f"GitHub API requests remaining: {remaining}/{limit}")
+    
+    if remaining < 50:
+        print("WARNING: Low on API requests. This scan may fail partway through.")
     if len(sys.argv) != 2:
         print("Usage: python scanner.py owner/repo")
         sys.exit(1)
@@ -51,7 +58,12 @@ if __name__ == "__main__":
     owner, repo = repo_input.split("/")
     
     print(f"Scanning {owner}/{repo}...")
-    results = scan_repo(owner, repo)
+    results, skipped = scan_repo(owner, repo)
+    
+    if skipped:
+        print(f"\nSkipped {len(skipped)} file(s) that couldn't be read:")
+        for path in skipped:
+            print(f"  - {path}")
     
     report.print_report(results)
     report.save_report(results)

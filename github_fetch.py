@@ -16,9 +16,12 @@ def get_repo_info(owner, repo):
 
 def get_file_list(owner, repo, branch="main"):
     tree_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
-    tree_response = requests.get(tree_url)
+    tree_response = requests.get(tree_url, headers=HEADERS)
     tree_data = tree_response.json()
-
+    
+    if tree_data.get("truncated"):
+        print(f"WARNING: File list for {owner}/{repo} was truncated. Not all files were scanned.")
+    
     files = []
     for file in tree_data["tree"]:
         files.append({"path": file["path"], "url": file["url"]})
@@ -45,3 +48,10 @@ if __name__ == "__main__":
     first_file = files[0]
     content = get_file_content(first_file["url"])
     print(content)
+
+def check_rate_limit():
+    response = requests.get("https://api.github.com/rate_limit", headers=HEADERS)
+    data = response.json()
+    remaining = data["rate"]["remaining"]
+    limit = data["rate"]["limit"]
+    return remaining, limit
