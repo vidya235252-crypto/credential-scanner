@@ -1,5 +1,12 @@
 import requests
 import base64
+import os
+
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+
+HEADERS = {
+    "Authorization": f"token {GITHUB_TOKEN}"
+}
 
 def get_repo_info(owner, repo):
     url = f"https://api.github.com/repos/{owner}/{repo}"
@@ -11,7 +18,7 @@ def get_file_list(owner, repo, branch="main"):
     tree_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
     tree_response = requests.get(tree_url)
     tree_data = tree_response.json()
-    
+
     files = []
     for file in tree_data["tree"]:
         files.append({"path": file["path"], "url": file["url"]})
@@ -31,7 +38,8 @@ if __name__ == "__main__":
     print(info["full_name"])
     print(info["description"])
     
-    files = get_file_list("octocat", "Hello-World")
+    branch = info["default_branch"]
+    files = get_file_list("octocat", "Hello-World", branch)
     print(files)
     
     first_file = files[0]
