@@ -1,0 +1,35 @@
+[
+  {
+    "file": "config.py",
+    "type": "Generic API Key",
+    "match": "api_key = \"sk1234567890abcdef1234567890\"",
+    "method": "pattern"
+  },
+  {
+    "file": "config.py",
+    "type": "Slack Token",
+    "match": "xoxb-FAKE0000000-notarealtoken00",
+    "method": "pattern"
+  },
+  {
+    "file": "config.py",
+    "type": "High entropy string",
+    "match": "AKIAFAKEKEY1234567X",
+    "entropy": 3.64,
+    "method": "entropy"
+  },
+  {
+    "file": "config.py",
+    "type": "High entropy string",
+    "match": "sk1234567890abcdef1234567890",
+    "entropy": 4.09,
+    "method": "entropy"
+  },
+  {
+    "file": "config.py",
+    "type": "High entropy string",
+    "match": "xoxb-FAKE0000000-notarealtoken00",
+    "entropy": 3.58,
+    "method": "entropy"
+  }
+]

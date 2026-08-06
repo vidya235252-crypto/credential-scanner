@@ -7,8 +7,8 @@ def get_repo_info(owner, repo):
     data = response.json()
     return data
 
-def get_file_list(owner, repo):
-    tree_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/master?recursive=1"
+def get_file_list(owner, repo, branch="main"):
+    tree_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
     tree_response = requests.get(tree_url)
     tree_data = tree_response.json()
     
@@ -26,13 +26,14 @@ def get_file_content(blob_url):
     decoded_text = decoded_bytes.decode("utf-8")
     return decoded_text
 
-info = get_repo_info("octocat", "Hello-World")
-print(info["full_name"])
-print(info["description"])
-
-files = get_file_list("octocat", "Hello-World")
-print(files)
-
-first_file = files[0]
-content = get_file_content(first_file["url"])
-print(content)
+if __name__ == "__main__":
+    info = get_repo_info("octocat", "Hello-World")
+    print(info["full_name"])
+    print(info["description"])
+    
+    files = get_file_list("octocat", "Hello-World")
+    print(files)
+    
+    first_file = files[0]
+    content = get_file_content(first_file["url"])
+    print(content)
