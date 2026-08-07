@@ -10,7 +10,7 @@ HEADERS = {
 
 def get_repo_info(owner, repo):
     url = f"https://api.github.com/repos/{owner}/{repo}"
-    response = requests.get(url)
+    response = requests.get(url, headers=HEADERS)
     data = response.json()
     return data
 
@@ -29,7 +29,7 @@ def get_file_list(owner, repo, branch="main"):
     return files
 
 def get_file_content(blob_url):
-    blob_response = requests.get(blob_url)
+    blob_response = requests.get(blob_url, headers=HEADERS)
     blob_data = blob_response.json()
     encoded_content = blob_data["content"]
     decoded_bytes = base64.b64decode(encoded_content)

@@ -23,19 +23,20 @@ def trigger_scan(request: ScanRequest):
         raise HTTPException(status_code=429, detail="Low on GitHub API requests, try again later")
     
     try:
-        findings, skipped = scanner.scan_repo(request.owner, request.repo)
+        findings, skipped, files_scanned = scanner.scan_repo(request.owner, request.repo)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
     scan_id = database.save_scan(request.owner, request.repo, findings, len(skipped))
     
     return {
-        "scan_id": scan_id,
-        "owner": request.owner,
-        "repo": request.repo,
-        "findings_count": len(findings),
-        "skipped_count": len(skipped),
-        "findings": findings
+    "scan_id": scan_id,
+    "owner": request.owner,
+    "repo": request.repo,
+    "files_scanned": files_scanned,
+    "findings_count": len(findings),
+    "skipped_count": len(skipped),
+    "findings": findings
     }
 
 @app.get("/scans")

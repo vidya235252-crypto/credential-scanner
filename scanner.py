@@ -4,46 +4,91 @@ import patterns
 import entropy
 import report
 import database
+from concurrent.futures import ThreadPoolExecutor
+
+SCANNABLE_EXTENSIONS = [
+    ".py", ".js", ".ts", ".jsx", ".tsx", ".json", ".yml", ".yaml",
+    ".env", ".txt", ".md", ".java", ".go", ".rb", ".php", ".sh",
+    ".xml", ".ini", ".cfg", ".conf", ".properties", ".html", ".css"
+]
+
+IGNORED_FILENAMES = [
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "tsconfig.json",
+    "tsconfig.app.json",
+    "tsconfig.node.json"
+]
+
+def should_scan_file(path):
+    for ignored in IGNORED_FILENAMES:
+        if path.endswith(ignored):
+            return False
+    
+    for ext in SCANNABLE_EXTENSIONS:
+        if path.endswith(ext):
+            return True
+    
+    return False
+
+
+def scan_one_file(file):
+    path = file["path"]
+    url = file["url"]
+    
+    if not should_scan_file(path):
+        return None
+    
+    try:
+        content = github_fetch.get_file_content(url)
+    except Exception:
+        return {"skipped": path}
+    
+    file_findings = []
+    
+    pattern_matches = patterns.scan_text(content)
+    for match in pattern_matches:
+        file_findings.append({
+            "file": path,
+            "type": match["type"],
+            "match": match["match"],
+            "method": "pattern"
+        })
+    
+    entropy_matches = entropy.scan_text(content)
+    for match in entropy_matches:
+        file_findings.append({
+            "file": path,
+            "type": "High entropy string",
+            "match": match["string"],
+            "entropy": match["entropy"],
+            "method": "entropy"
+        })
+    
+    return {"findings": file_findings}
 
 def scan_repo(owner, repo):
-    findings = []
-    skipped_files = []
-
     repo_info = github_fetch.get_repo_info(owner, repo)
     branch = repo_info["default_branch"]
     
     files = github_fetch.get_file_list(owner, repo, branch)
     
-    for file in files:
-        path = file["path"]
-        url = file["url"]
-        
-        try:
-            content = github_fetch.get_file_content(url)
-        except Exception:
-            skipped_files.append(path)
-            continue
-        
-        pattern_matches = patterns.scan_text(content)
-        for match in pattern_matches:
-            findings.append({
-                "file": path,
-                "type": match["type"],
-                "match": match["match"],
-                "method": "pattern"
-            })
-        
-        entropy_matches = entropy.scan_text(content)
-        for match in entropy_matches:
-            findings.append({
-                "file": path,
-                "type": "High entropy string",
-                "match": match["string"],
-                "entropy": match["entropy"],
-                "method": "entropy"
-            })
+    findings = []
+    skipped_files = []
     
-    return findings, skipped_files
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = executor.map(scan_one_file, files)
+    
+    for result in results:
+        if result is None:
+            continue
+        if "skipped" in result:
+            skipped_files.append(result["skipped"])
+        else:
+            findings.extend(result["findings"])
+    
+    return findings, skipped_files, len(files)
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -60,7 +105,7 @@ if __name__ == "__main__":
     owner, repo = repo_input.split("/")
     
     print(f"Scanning {owner}/{repo}...")
-    results, skipped = scan_repo(owner, repo)
+    results, skipped, files_scanned = scan_repo(owner, repo)
     
     if skipped:
         print(f"\nSkipped {len(skipped)} file(s) that couldn't be read:")
@@ -73,3 +118,5 @@ if __name__ == "__main__":
     database.init_db()
     scan_id = database.save_scan(owner, repo, results, len(skipped))
     print(f"Scan saved to database with id {scan_id}")
+
+

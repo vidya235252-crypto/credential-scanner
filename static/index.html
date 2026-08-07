@@ -1,92 +1,254 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Credential Scanner Dashboard</title>
-    <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
-        input { padding: 8px; width: 300px; }
-        button { padding: 8px 16px; margin-left: 8px; }
-        .finding { border-left: 4px solid #ccc; padding: 8px; margin: 8px 0; }
-        .HIGH { border-left-color: red; }
-        .MEDIUM { border-left-color: orange; }
-        .scan-row { padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .scan-row:hover { background: #f5f5f5; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepoSentinel | GitHub Secret Scanner</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
+
 <body>
-    <h1>Credential Scanner Dashboard</h1>
 
-    <div>
-        <input id="repoInput" type="text" placeholder="owner/repo">
-        <button onclick="runScan()">Scan</button>
-    </div>
+<div class="container">
 
-    <div id="status"></div>
-    <div id="results"></div>
+    <header>
 
-    <h2>Scan History</h2>
-    <div id="history"></div>
+        <div class="logo">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h1>RepoSentinel</h1>
+        </div>
 
-    <script>
-        async function runScan() {
-            const input = document.getElementById("repoInput").value;
-            const [owner, repo] = input.split("/");
-            const statusDiv = document.getElementById("status");
-            const resultsDiv = document.getElementById("results");
+        <p class="subtitle">
+            Scan public GitHub repositories for leaked API keys,
+            credentials, private keys and secrets.
+        </p>
 
-            if (!owner || !repo) {
-                statusDiv.innerText = "Enter as owner/repo";
-                return;
-            }
+    </header>
 
-            statusDiv.innerText = "Scanning...";
-            resultsDiv.innerHTML = "";
+    <section class="panel">
 
-            try {
-                const response = await fetch("/scan", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ owner: owner, repo: repo })
-                });
+        <h2>
+            <i class="fa-brands fa-github"></i>
+            Scan Repository
+        </h2>
 
-                if (!response.ok) {
-                    const err = await response.json();
-                    statusDiv.innerText = "Error: " + err.detail;
-                    return;
-                }
+        <div class="scan-box">
 
-                const data = await response.json();
-                statusDiv.innerText = `Found ${data.findings_count} finding(s), skipped ${data.skipped_count} file(s).`;
+            <input
+                id="repoInput"
+                type="text"
+                placeholder="owner/repository"
+                autocomplete="off"
+            >
 
-                data.findings.forEach(f => {
-                    const severity = f.method === "pattern" ? "HIGH" : "MEDIUM";
-                    const div = document.createElement("div");
-                    div.className = "finding " + severity;
-                    div.innerText = `[${severity}] ${f.file} — ${f.type}: ${f.match}`;
-                    resultsDiv.appendChild(div);
-                });
+            <button id="scanBtn">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                Scan
+            </button>
 
-                loadHistory();
-            } catch (e) {
-                statusDiv.innerText = "Request failed: " + e;
-            }
-        }
+        </div>
 
-        async function loadHistory() {
-            const response = await fetch("/scans");
-            const scans = await response.json();
-            const historyDiv = document.getElementById("history");
-            historyDiv.innerHTML = "";
+        <small class="hint">
+            Example: torvalds/linux
+        </small>
 
-            scans.forEach(scan => {
-                const div = document.createElement("div");
-                div.className = "scan-row";
-                div.innerText = `#${scan.id} — ${scan.owner}/${scan.repo} — ${scan.scanned_at}`;
-                historyDiv.appendChild(div);
-            });
-        }
+    </section>
 
-        loadHistory();
-    </script>
+    <section class="panel">
+
+        <div id="status" class="status idle">
+            Ready to scan.
+        </div>
+
+        <div id="loader" class="loader hidden">
+
+            <div class="spinner"></div>
+
+            <span>Scanning repository...</span>
+
+        </div>
+
+    </section>
+
+    <section class="summary-grid">
+
+        <div class="summary-card">
+
+            <i class="fa-solid fa-folder-tree"></i>
+
+            <div>
+
+                <h3 id="filesScanned">0</h3>
+
+                <p>Files Scanned</p>
+
+            </div>
+
+        </div>
+
+        <div class="summary-card">
+
+            <i class="fa-solid fa-triangle-exclamation"></i>
+
+            <div>
+
+                <h3 id="findingsCount">0</h3>
+
+                <p>Findings</p>
+
+            </div>
+
+        </div>
+
+        <div class="summary-card">
+
+            <i class="fa-solid fa-ban"></i>
+
+            <div>
+
+                <h3 id="skippedCount">0</h3>
+
+                <p>Skipped Files</p>
+
+            </div>
+
+        </div>
+
+        <div class="summary-card">
+
+            <i class="fa-solid fa-shield"></i>
+
+            <div>
+
+                <h3 id="riskLevel">SAFE</h3>
+
+                <p>Risk Level</p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <section class="panel">
+
+        <div class="section-title">
+
+            <h2>
+
+                <i class="fa-solid fa-bug"></i>
+
+                Findings
+
+            </h2>
+
+        </div>
+
+        <div id="emptyState" class="empty">
+
+            <i class="fa-solid fa-circle-check"></i>
+
+            <h3>No Scan Yet</h3>
+
+            <p>
+                Scan a repository to view detected secrets.
+            </p>
+
+        </div>
+
+        <div id="resultsWrapper" class="hidden">
+
+            <table id="resultsTable">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Severity</th>
+
+                        <th>Type</th>
+
+                        <th>File</th>
+
+                        <th>Detection</th>
+
+                        <th>Value</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="resultsBody">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+    <section class="panel">
+
+        <div class="section-title">
+
+            <h2>
+
+                <i class="fa-solid fa-clock-rotate-left"></i>
+
+                Scan History
+
+            </h2>
+
+            <button id="refreshBtn">
+
+                <i class="fa-solid fa-rotate"></i>
+
+                Refresh
+
+            </button>
+
+        </div>
+
+        <table id="historyTable">
+
+            <thead>
+
+                <tr>
+
+                    <th>ID</th>
+
+                    <th>Repository</th>
+
+                    <th>Time</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="historyBody">
+
+            </tbody>
+
+        </table>
+
+    </section>
+
+    <footer>
+
+        RepoSentinel • Secret Leak Scanner
+
+    </footer>
+
+</div>
+
+<script src="/static/script.js"></script>
+
 </body>
 </html>

@@ -19,7 +19,7 @@ def calculate_entropy(text):
 def find_candidate_strings(text):
     return re.findall(r"['\"]([A-Za-z0-9+/=_-]{8,})['\"]", text)
 
-def scan_text(text, threshold=3.5):
+def scan_text(text, threshold=4.0):
     findings = []
     candidates = find_candidate_strings(text)
     
