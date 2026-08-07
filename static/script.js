@@ -86,6 +86,12 @@ async function runScan() {
         else
             filesScanned.textContent = "-";
 
+        const hygieneDiv = document.getElementById("hygieneChecks");
+        hygieneDiv.innerHTML = `
+            <p>${data.hygiene.has_gitignore ? "✅" : "❌"} .gitignore</p>
+            <p>${data.hygiene.has_license ? "✅" : "❌"} License</p>
+        `;
+
         if (data.findings.length === 0) {
 
             riskLevel.textContent = "SAFE";
@@ -141,7 +147,7 @@ async function runScan() {
 
             });
 
-            riskLevel.textContent = hasHigh ? "HIGH" : "MEDIUM";
+            riskLevel.textContent = data.risk_score + "/100";
 
         }
 

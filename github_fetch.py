@@ -55,3 +55,17 @@ def check_rate_limit():
     remaining = data["rate"]["remaining"]
     limit = data["rate"]["limit"]
     return remaining, limit
+
+def file_exists(owner, repo, path):
+    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+    response = requests.get(url, headers=HEADERS)
+    return response.status_code == 200
+
+def check_hygiene(owner, repo):
+    has_gitignore = file_exists(owner, repo, ".gitignore")
+    has_license = file_exists(owner, repo, "LICENSE") or file_exists(owner, repo, "LICENSE.md")
+    
+    return {
+        "has_gitignore": has_gitignore,
+        "has_license": has_license
+    }

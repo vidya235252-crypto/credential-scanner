@@ -5,6 +5,7 @@ import entropy
 import report
 import database
 from concurrent.futures import ThreadPoolExecutor
+import risk
 
 SCANNABLE_EXTENSIONS = [
     ".py", ".js", ".ts", ".jsx", ".tsx", ".json", ".yml", ".yaml",
@@ -71,6 +72,8 @@ def scan_one_file(file):
 def scan_repo(owner, repo):
     repo_info = github_fetch.get_repo_info(owner, repo)
     branch = repo_info["default_branch"]
+
+    hygiene = github_fetch.check_hygiene(owner, repo)
     
     files = github_fetch.get_file_list(owner, repo, branch)
     
@@ -88,7 +91,9 @@ def scan_repo(owner, repo):
         else:
             findings.extend(result["findings"])
     
-    return findings, skipped_files, len(files)
+    risk_score = risk.calculate_risk_score(findings)
+    
+    return findings, skipped_files, len(files), risk_score, hygiene
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -105,7 +110,7 @@ if __name__ == "__main__":
     owner, repo = repo_input.split("/")
     
     print(f"Scanning {owner}/{repo}...")
-    results, skipped, files_scanned = scan_repo(owner, repo)
+    results, skipped, files_scanned, risk_score, hygiene = scan_repo(owner, repo)
     
     if skipped:
         print(f"\nSkipped {len(skipped)} file(s) that couldn't be read:")
