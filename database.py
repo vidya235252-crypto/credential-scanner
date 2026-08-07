@@ -1,0 +1,86 @@
+import sqlite3
+
+def get_connection():
+    connection = sqlite3.connect("scanner.db")
+    return connection
+
+def init_db():
+    connection = get_connection()
+    cursor = connection.cursor()
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS scans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner TEXT,
+            repo TEXT,
+            scanned_at TEXT,
+            skipped_count INTEGER
+        )
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS findings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scan_id INTEGER,
+            file TEXT,
+            type TEXT,
+            match TEXT,
+            method TEXT,
+            severity TEXT,
+            FOREIGN KEY (scan_id) REFERENCES scans(id)
+        )
+    """)
+    
+    connection.commit()
+    connection.close()
+
+def save_scan(owner, repo, findings, skipped_count):
+    connection = get_connection()
+    cursor = connection.cursor()
+    
+    cursor.execute(
+        "INSERT INTO scans (owner, repo, scanned_at, skipped_count) VALUES (?, ?, datetime('now'), ?)",
+        (owner, repo, skipped_count)
+    )
+    
+    scan_id = cursor.lastrowid
+    
+    for finding in findings:
+        severity = "HIGH" if finding["method"] == "pattern" else "MEDIUM"
+        cursor.execute(
+            "INSERT INTO findings (scan_id, file, type, match, method, severity) VALUES (?, ?, ?, ?, ?, ?)",
+            (scan_id, finding["file"], finding["type"], finding["match"], finding["method"], severity)
+        )
+    
+    connection.commit()
+    connection.close()
+    return scan_id
+
+def get_all_scans():
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT id, owner, repo, scanned_at, skipped_count FROM scans ORDER BY scanned_at DESC")
+    rows = cursor.fetchall()
+    connection.close()
+    return rows
+
+def get_scan_findings(scan_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT file, type, match, method, severity FROM findings WHERE scan_id = ?", (scan_id,))
+    rows = cursor.fetchall()
+    connection.close()
+    return rows
+
+if __name__ == "__main__":
+    init_db()
+    print("Database initialized.")
+    fake_findings = [
+        {"file": "config.py", "type": "Slack Token", "match": "xoxb-fake", "method": "pattern"}
+    ]
+    scan_id = save_scan("testowner", "testrepo", fake_findings, 0)
+    print("Saved scan with id:", scan_id)
+    
+    print(get_all_scans())
+    print(get_scan_findings(scan_id))
+

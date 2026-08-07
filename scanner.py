@@ -3,6 +3,7 @@ import github_fetch
 import patterns
 import entropy
 import report
+import database
 
 def scan_repo(owner, repo):
     findings = []
@@ -45,14 +46,15 @@ def scan_repo(owner, repo):
     return findings, skipped_files
 
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python scanner.py owner/repo")
+        sys.exit(1)
+    
     remaining, limit = github_fetch.check_rate_limit()
     print(f"GitHub API requests remaining: {remaining}/{limit}")
     
     if remaining < 50:
         print("WARNING: Low on API requests. This scan may fail partway through.")
-    if len(sys.argv) != 2:
-        print("Usage: python scanner.py owner/repo")
-        sys.exit(1)
     
     repo_input = sys.argv[1]
     owner, repo = repo_input.split("/")
@@ -67,3 +69,7 @@ if __name__ == "__main__":
     
     report.print_report(results)
     report.save_report(results)
+    
+    database.init_db()
+    scan_id = database.save_scan(owner, repo, results, len(skipped))
+    print(f"Scan saved to database with id {scan_id}")
