@@ -6,6 +6,7 @@ import report
 import database
 from concurrent.futures import ThreadPoolExecutor
 import risk
+from functools import partial
 
 SCANNABLE_EXTENSIONS = [
     ".py", ".js", ".ts", ".jsx", ".tsx", ".json", ".yml", ".yaml",
@@ -34,7 +35,7 @@ def should_scan_file(path):
     return False
 
 
-def scan_one_file(file):
+def scan_one_file(file, owner, repo):
     path = file["path"]
     url = file["url"]
     
@@ -47,24 +48,32 @@ def scan_one_file(file):
         return {"skipped": path}
     
     file_findings = []
+
+    commit_info = None
     
     pattern_matches = patterns.scan_text(content)
+    entropy_matches = entropy.scan_text(content)
+    
+    if pattern_matches or entropy_matches:
+        commit_info = github_fetch.get_introducing_commit(owner, repo, path)
+    
     for match in pattern_matches:
         file_findings.append({
             "file": path,
             "type": match["type"],
             "match": match["match"],
-            "method": "pattern"
+            "method": "pattern",
+            "commit": commit_info
         })
     
-    entropy_matches = entropy.scan_text(content)
     for match in entropy_matches:
         file_findings.append({
             "file": path,
             "type": "High entropy string",
             "match": match["string"],
             "entropy": match["entropy"],
-            "method": "entropy"
+            "method": "entropy",
+            "commit": commit_info
         })
     
     return {"findings": file_findings}
@@ -72,7 +81,7 @@ def scan_one_file(file):
 def scan_repo(owner, repo):
     repo_info = github_fetch.get_repo_info(owner, repo)
     branch = repo_info["default_branch"]
-    
+
     files = github_fetch.get_file_list(owner, repo, branch)
 
     file_paths = [f["path"] for f in files]
@@ -82,7 +91,8 @@ def scan_repo(owner, repo):
     skipped_files = []
     
     with ThreadPoolExecutor(max_workers=10) as executor:
-        results = executor.map(scan_one_file, files)
+        scan_with_context = partial(scan_one_file, owner=owner, repo=repo)
+        results = executor.map(scan_with_context, files)
     
     for result in results:
         if result is None:
