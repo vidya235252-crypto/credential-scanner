@@ -104,3 +104,24 @@ def get_scan_history_for_repo(owner, repo):
     rows = cursor.fetchall()
     connection.close()
     return rows
+
+def clear_scans_for_repo(owner, repo):
+    connection = get_connection()
+    cursor = connection.cursor()
+    
+    cursor.execute(
+        "SELECT id FROM scans WHERE owner = ? AND repo = ?",
+        (owner, repo)
+    )
+    scan_ids = [row[0] for row in cursor.fetchall()]
+    
+    for scan_id in scan_ids:
+        cursor.execute("DELETE FROM findings WHERE scan_id = ?", (scan_id,))
+    
+    cursor.execute(
+        "DELETE FROM scans WHERE owner = ? AND repo = ?",
+        (owner, repo)
+    )
+    
+    connection.commit()
+    connection.close()

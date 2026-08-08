@@ -56,6 +56,11 @@ def list_scans():
         })
     return scans
 
+@app.delete("/scans/{owner}/{repo}")
+def clear_repo_scans(owner: str, repo: str):
+    database.clear_scans_for_repo(owner, repo)
+    return {"message": f"Scan history cleared for {owner}/{repo}"}
+
 @app.get("/scans/{scan_id}")
 def get_scan(scan_id: int):
     rows = database.get_scan_findings(scan_id)

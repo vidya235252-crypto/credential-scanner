@@ -18,15 +18,51 @@ const historyBody = document.getElementById("historyBody");
 
 const trendChartCanvas = document.getElementById("trendChart");
 const secretDensity = document.getElementById("secretDensity");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 let trendChartInstance = null;
 
 scanBtn.addEventListener("click", runScan);
 refreshBtn.addEventListener("click", loadHistory);
+clearHistoryBtn.addEventListener("click", clearHistory);
 
 repoInput.addEventListener("keypress", function (e) {
     if (e.key === "Enter") {
         runScan();
     }
+});
+historyBody.addEventListener("click", async function (e) {
+
+    const button = e.target.closest(".deleteRowBtn");
+
+    if (!button) {
+        return;
+    }
+
+    const owner = button.dataset.owner;
+    const repo = button.dataset.repo;
+
+    const confirmed = confirm(`This will permanently delete scan history for ${owner}/${repo}. Are you sure?`);
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+
+        const response = await fetch(`/scans/${owner}/${repo}`, {
+            method: "DELETE"
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to clear history");
+        }
+
+        loadHistory();
+
+    } catch (err) {
+        console.error(err);
+    }
+
 });
 
 async function runScan() {
@@ -252,21 +288,63 @@ async function loadHistory() {
 
         scans.reverse().forEach(scan => {
 
-            const row = document.createElement("tr");
+    const row = document.createElement("tr");
 
-            row.innerHTML = `
-                <td>#${scan.id}</td>
-                <td>${scan.owner}/${scan.repo}</td>
-                <td>${formatDate(scan.scanned_at)}</td>
-            `;
+    row.innerHTML = `
+        <td>#${scan.id}</td>
+        <td>${scan.owner}/${scan.repo}</td>
+        <td>${formatDate(scan.scanned_at)}</td>
+        <td>
+            <button class="deleteRowBtn" data-owner="${scan.owner}" data-repo="${scan.repo}">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </td>
+    `;
 
-            historyBody.appendChild(row);
+    historyBody.appendChild(row);
 
-        });
+});
 
     } catch (err) {
 
         console.error(err);
+
+    }
+
+}
+async function clearHistory() {
+
+    const input = repoInput.value.trim();
+
+    if (!input.includes("/")) {
+        setStatus("Enter a repository (owner/repository) before clearing its history.", "#d29922");
+        return;
+    }
+
+    const [owner, repo] = input.split("/");
+
+    const confirmed = confirm(`This will permanently delete scan history for ${owner}/${repo}. Are you sure?`);
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+
+        const response = await fetch(`/scans/${owner}/${repo}`, {
+            method: "DELETE"
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to clear history");
+        }
+
+        loadHistory();
+
+    } catch (err) {
+
+        console.error(err);
+        setStatus("Failed to clear history.", "#f85149");
 
     }
 
