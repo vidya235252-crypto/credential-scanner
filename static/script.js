@@ -134,23 +134,29 @@ async function runScan() {
 
                 const row = document.createElement("tr");
 
-                row.innerHTML = `
-                    <td>
-                        <span class="badge ${severity.toLowerCase()}">
-                            ${severity}
-                        </span>
-                    </td>
+                const commitCell = finding.commit
+    ? `${finding.commit.author} · ${formatDate(finding.commit.date)}`
+    : "Unknown";
 
-                    <td>${finding.type}</td>
+            row.innerHTML = `
+                <td>
+                    <span class="badge ${severity.toLowerCase()}">
+                        ${severity}
+                    </span>
+                </td>
 
-                    <td>${finding.file}</td>
+                <td>${finding.type}</td>
 
-                    <td>${capitalize(finding.method)}</td>
+                <td>${finding.file}</td>
 
-                    <td>
-                        <code>${escapeHtml(finding.match)}</code>
-                    </td>
-                `;
+                <td>${capitalize(finding.method)}</td>
+
+                <td>
+                    <code>${escapeHtml(finding.match)}</code>
+                </td>
+
+                <td>${commitCell}</td>
+            `;
 
                 resultsBody.appendChild(row);
 
