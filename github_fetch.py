@@ -36,6 +36,27 @@ def get_file_content(blob_url):
     decoded_text = decoded_bytes.decode("utf-8")
     return decoded_text
 
+def get_file_history(owner, repo, path):
+    url = f"https://api.github.com/repos/{owner}/{repo}/commits"
+    params = {"path": path}
+    response = requests.get(url, headers=HEADERS, params=params)
+    return response.json()
+
+def get_introducing_commit(owner, repo, path):
+    history = get_file_history(owner, repo, path)
+    
+    if not history:
+        return None
+    
+    oldest_commit = history[-1]
+    
+    return {
+        "sha": oldest_commit["sha"],
+        "author": oldest_commit["commit"]["author"]["name"],
+        "date": oldest_commit["commit"]["author"]["date"],
+        "message": oldest_commit["commit"]["message"]
+    }
+
 if __name__ == "__main__":
     info = get_repo_info("octocat", "Hello-World")
     print(info["full_name"])
