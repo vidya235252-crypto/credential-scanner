@@ -17,6 +17,7 @@ const resultsBody = document.getElementById("resultsBody");
 const historyBody = document.getElementById("historyBody");
 
 const trendChartCanvas = document.getElementById("trendChart");
+const secretDensity = document.getElementById("secretDensity");
 let trendChartInstance = null;
 
 scanBtn.addEventListener("click", runScan);
@@ -55,6 +56,7 @@ async function runScan() {
     findingsCount.textContent = "-";
     skippedCount.textContent = "-";
     riskLevel.textContent = "-";
+    secretDensity.textContent = "-";
 
     try {
 
@@ -88,6 +90,10 @@ async function runScan() {
             filesScanned.textContent = data.files_scanned;
         else
             filesScanned.textContent = "-";
+
+        secretDensity.textContent = data.secret_density !== undefined
+        ? data.secret_density + " / 100 files"
+        : "-";
 
         const hygieneDiv = document.getElementById("hygieneChecks");
         hygieneDiv.innerHTML = `

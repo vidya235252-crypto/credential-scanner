@@ -92,8 +92,10 @@ def scan_repo(owner, repo):
             findings.extend(result["findings"])
     
     risk_score = risk.calculate_risk_score(findings)
+
+    density = round((len(findings) / len(files)) * 100, 2) if len(files) > 0 else 0
     
-    return findings, skipped_files, len(files), risk_score, hygiene
+    return findings, skipped_files, len(files), risk_score, hygiene, density
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -110,7 +112,7 @@ if __name__ == "__main__":
     owner, repo = repo_input.split("/")
     
     print(f"Scanning {owner}/{repo}...")
-    results, skipped, files_scanned, risk_score, hygiene = scan_repo(owner, repo)
+    results, skipped, files_scanned, risk_score, hygiene, density = scan_repo(owner, repo)
     
     if skipped:
         print(f"\nSkipped {len(skipped)} file(s) that couldn't be read:")

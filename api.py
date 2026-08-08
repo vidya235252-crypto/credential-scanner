@@ -23,7 +23,7 @@ def trigger_scan(request: ScanRequest):
         raise HTTPException(status_code=429, detail="Low on GitHub API requests, try again later")
     
     try:
-        findings, skipped, files_scanned, risk_score, hygiene = scanner.scan_repo(request.owner, request.repo)
+        findings, skipped, files_scanned, risk_score, hygiene, density = scanner.scan_repo(request.owner, request.repo)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
@@ -37,6 +37,7 @@ def trigger_scan(request: ScanRequest):
     "findings_count": len(findings),
     "skipped_count": len(skipped),
     "risk_score": risk_score,
+    "secret_density": density,
     "hygiene": hygiene,
     "findings": findings
     }
