@@ -61,9 +61,15 @@ def file_exists(owner, repo, path):
     response = requests.get(url, headers=HEADERS)
     return response.status_code == 200
 
-def check_hygiene(owner, repo):
-    has_gitignore = file_exists(owner, repo, ".gitignore")
-    has_license = file_exists(owner, repo, "LICENSE") or file_exists(owner, repo, "LICENSE.md")
+def check_hygiene(file_paths):
+    has_gitignore = any(
+        path == ".gitignore" or path.endswith("/.gitignore")
+        for path in file_paths
+    )
+    has_license = any(
+        path.split("/")[-1] in ("LICENSE", "LICENSE.md")
+        for path in file_paths
+    )
     
     return {
         "has_gitignore": has_gitignore,

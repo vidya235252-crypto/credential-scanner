@@ -72,10 +72,11 @@ def scan_one_file(file):
 def scan_repo(owner, repo):
     repo_info = github_fetch.get_repo_info(owner, repo)
     branch = repo_info["default_branch"]
-
-    hygiene = github_fetch.check_hygiene(owner, repo)
     
     files = github_fetch.get_file_list(owner, repo, branch)
+
+    file_paths = [f["path"] for f in files]
+    hygiene = github_fetch.check_hygiene(file_paths)
     
     findings = []
     skipped_files = []
