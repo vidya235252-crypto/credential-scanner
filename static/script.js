@@ -16,6 +16,9 @@ const resultsBody = document.getElementById("resultsBody");
 
 const historyBody = document.getElementById("historyBody");
 
+const trendChartCanvas = document.getElementById("trendChart");
+let trendChartInstance = null;
+
 scanBtn.addEventListener("click", runScan);
 refreshBtn.addEventListener("click", loadHistory);
 
@@ -152,6 +155,7 @@ async function runScan() {
         }
 
         loadHistory();
+        loadHistoryChart(owner, repo);
 
     } catch (err) {
 
@@ -161,6 +165,51 @@ async function runScan() {
 
         setStatus(err.message, "#f85149");
 
+    }
+
+}
+
+async function loadHistoryChart(owner, repo) {
+
+    try {
+
+        const response = await fetch(`/scans/history/${owner}/${repo}`);
+        const data = await response.json();
+
+        const validHistory = data.filter(entry => entry.risk_score !== null);
+
+        const labels = validHistory.map(entry => formatDate(entry.scanned_at));
+        const riskScores = validHistory.map(entry => entry.risk_score);
+
+        if (trendChartInstance) {
+            trendChartInstance.destroy();
+        }
+
+        trendChartInstance = new Chart(trendChartCanvas, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Risk Score",
+                    data: riskScores,
+                    borderColor: "#58a6ff",
+                    backgroundColor: "rgba(88,166,255,.15)",
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
     }
 
 }

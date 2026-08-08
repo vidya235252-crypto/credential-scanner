@@ -121,7 +121,7 @@ if __name__ == "__main__":
     report.save_report(results)
     
     database.init_db()
-    scan_id = database.save_scan(owner, repo, results, len(skipped))
+    scan_id = database.save_scan(owner, repo, results, len(skipped), risk_score)
     print(f"Scan saved to database with id {scan_id}")
 
 

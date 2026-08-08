@@ -11,6 +11,7 @@
 
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -83,6 +84,14 @@
             </h2>
         <div id="hygieneChecks"></div>
     </section>
+
+    <section class="panel">
+    <h2>
+        <i class="fa-solid fa-chart-line"></i>
+        Risk Score Trend
+    </h2>
+    <canvas id="trendChart" height="80"></canvas>
+</section>
 
     <section class="summary-grid">
 

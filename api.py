@@ -27,7 +27,7 @@ def trigger_scan(request: ScanRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-    scan_id = database.save_scan(request.owner, request.repo, findings, len(skipped))
+    scan_id = database.save_scan(request.owner, request.repo, findings, len(skipped), risk_score)
     
     return {
     "scan_id": scan_id,
@@ -71,6 +71,18 @@ def get_scan(scan_id: int):
             "severity": row[4]
         })
     return {"scan_id": scan_id, "findings": findings}
+
+@app.get("/scans/history/{owner}/{repo}")
+def scan_history(owner: str, repo: str):
+    rows = database.get_scan_history_for_repo(owner, repo)
+    history = []
+    for row in rows:
+        history.append({
+            "scanned_at": row[0],
+            "findings_count": row[1],
+            "risk_score": row[2]
+        })
+    return history
 
 @app.get("/")
 def serve_frontend():

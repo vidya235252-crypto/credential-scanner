@@ -18,6 +18,16 @@ def init_db():
         )
     """)
     
+    try:
+        cursor.execute("ALTER TABLE scans ADD COLUMN findings_count INTEGER")
+    except sqlite3.OperationalError:
+        pass
+    
+    try:
+        cursor.execute("ALTER TABLE scans ADD COLUMN risk_score INTEGER")
+    except sqlite3.OperationalError:
+        pass
+    
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS findings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,13 +44,13 @@ def init_db():
     connection.commit()
     connection.close()
 
-def save_scan(owner, repo, findings, skipped_count):
+def save_scan(owner, repo, findings, skipped_count, risk_score):
     connection = get_connection()
     cursor = connection.cursor()
     
     cursor.execute(
-        "INSERT INTO scans (owner, repo, scanned_at, skipped_count) VALUES (?, ?, datetime('now'), ?)",
-        (owner, repo, skipped_count)
+        "INSERT INTO scans (owner, repo, scanned_at, skipped_count, findings_count, risk_score) VALUES (?, ?, datetime('now'), ?, ?, ?)",
+        (owner, repo, skipped_count, len(findings), risk_score)
     )
     
     scan_id = cursor.lastrowid
@@ -84,3 +94,13 @@ if __name__ == "__main__":
     print(get_all_scans())
     print(get_scan_findings(scan_id))
 
+def get_scan_history_for_repo(owner, repo):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT scanned_at, findings_count, risk_score FROM scans WHERE owner = ? AND repo = ? ORDER BY scanned_at ASC",
+        (owner, repo)
+    )
+    rows = cursor.fetchall()
+    connection.close()
+    return rows
