@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepoSentinel | Compare Repositories</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="logo">
+            <i class="fa-solid fa-code-compare"></i>
+            <h1>Compare Repositories</h1>
+        </div>
+        <p class="subtitle">Compare security findings between two GitHub repositories.</p>
+        <a href="/" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: var(--primary); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">
+    <i class="fa-solid fa-arrow-left"></i> Back to Scanner
+</a>
+    </header>
+    <section class="panel">
+        <h2>
+            <i class="fa-brands fa-github"></i>
+            Repositories to Compare
+        </h2>
+        <div class="scan-box">
+            <input id="repo1Input" type="text" placeholder="owner/repository (first)" autocomplete="off">
+            <input id="repo2Input" type="text" placeholder="owner/repository (second)" autocomplete="off">
+            <button id="compareBtn">
+                <i class="fa-solid fa-code-compare"></i>
+                Compare
+            </button>
+        </div>
+    </section>
+    <section class="panel">
+    <div id="compareStatus" class="status idle">Enter two repositories to compare.</div>
+    <div id="compareLoader" class="loader hidden">
+        <div class="spinner"></div>
+        <span>Comparing repositories...</span>
+    </div>
+</section>
+    <section id="compareResults" class="hidden"></section>
+    <footer>RepoSentinel • Secret Leak Scanner</footer>
+</div>
+<script src="/static/compare.js"></script>
+</body>
+</html>

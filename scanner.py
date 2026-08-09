@@ -108,6 +108,49 @@ def scan_repo(owner, repo):
     
     return findings, skipped_files, len(files), risk_score, hygiene, density
 
+def compare_repos(owner1, repo1, owner2, repo2):
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future1 = executor.submit(scan_repo, owner1, repo1)
+        future2 = executor.submit(scan_repo, owner2, repo2)
+        
+        findings1, skipped1, files1, risk1, hygiene1, density1 = future1.result()
+        findings2, skipped2, files2, risk2, hygiene2, density2 = future2.result()
+    
+    types1 = {f["type"] for f in findings1}
+    types2 = {f["type"] for f in findings2}
+    
+    only_in_repo1 = list(types1 - types2)
+    only_in_repo2 = list(types2 - types1)
+    in_both = list(types1 & types2)
+    
+    return {
+        "repo1": {
+            "owner": owner1,
+            "repo": repo1,
+            "findings_count": len(findings1),
+            "risk_score": risk1,
+            "secret_density": density1,
+            "files_scanned": files1,
+            "hygiene": hygiene1,
+            "findings": findings1
+        },
+        "repo2": {
+            "owner": owner2,
+            "repo": repo2,
+            "findings_count": len(findings2),
+            "risk_score": risk2,
+            "secret_density": density2,
+            "files_scanned": files2,
+            "hygiene": hygiene2,
+            "findings": findings2
+        },
+        "comparison": {
+            "only_in_repo1": only_in_repo1,
+            "only_in_repo2": only_in_repo2,
+            "shared_finding_types": in_both
+        }
+    }
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python scanner.py owner/repo")
