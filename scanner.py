@@ -116,6 +116,13 @@ def compare_repos(owner1, repo1, owner2, repo2):
         findings1, skipped1, files1, risk1, hygiene1, density1 = future1.result()
         findings2, skipped2, files2, risk2, hygiene2, density2 = future2.result()
     
+    types1 = {f["type"] for f in findings1}
+    types2 = {f["type"] for f in findings2}
+    
+    only_in_repo1 = list(types1 - types2)
+    only_in_repo2 = list(types2 - types1)
+    in_both = list(types1 & types2)
+    
     return {
         "repo1": {
             "owner": owner1,
@@ -136,6 +143,11 @@ def compare_repos(owner1, repo1, owner2, repo2):
             "files_scanned": files2,
             "hygiene": hygiene2,
             "findings": findings2
+        },
+        "comparison": {
+            "only_in_repo1": only_in_repo1,
+            "only_in_repo2": only_in_repo2,
+            "shared_finding_types": in_both
         }
     }
 
