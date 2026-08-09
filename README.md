@@ -43,15 +43,29 @@ Different findings have different levels of importance.
 
 For example, a private key should generally be treated as more serious than a generic high-entropy string. The project therefore assigns scores to different types of findings and uses them to calculate an overall risk level.
 
+### Secret Density
+
+Findings are also expressed relative to repository size (findings per 100 files scanned), which makes it possible to compare repositories of different sizes on a fairer basis than raw finding counts alone.
+
 ### Commit Attribution
 
-When a potential credential is found, the scanner attempts to identify the commit associated with its introduction.
+When a potential credential is found, the scanner attempts to identify the commit that introduced it, including the author, date, and commit message. This gives additional context about when and by whom the credential entered the repository.
 
-This gives some additional context about when the credential entered the repository.
+### Repository Hygiene Checks
+
+The scanner checks for the presence of a `.gitignore` and a license file anywhere in the repository, not just at the root, since many real projects keep these in subfolders.
 
 ### Scan History
 
-Previous scans and their results are stored so that they can be reviewed later.
+Previous scans and their results are stored so that they can be reviewed later, including a per-repository risk score trend over time and the ability to clear history for a specific repository.
+
+### Repository Comparison
+
+Two repositories can be scanned in parallel and compared side by side, including which finding types are unique to each repository and which are shared.
+
+### Real-Time Scan Progress
+
+Scans run over a WebSocket connection, so the interface shows live progress as each file is scanned instead of a single static loading indicator.
 
 ### Web Interface
 
@@ -59,7 +73,7 @@ The project has a frontend where a repository can be scanned and the results can
 
 ### REST API
 
-The backend is built using FastAPI and provides endpoints for starting scans, retrieving results, and viewing scan history.
+The backend is built using FastAPI and provides endpoints for starting scans, retrieving results, comparing repositories, and viewing scan history.
 
 ## How it works
 
@@ -108,12 +122,14 @@ Pattern Detection    Entropy Detection
 
 * Python
 * FastAPI
+* WebSockets (real-time scan progress)
 
 ### Frontend
 
 * HTML
 * CSS
 * JavaScript
+* Chart.js (risk score trend visualization)
 
 ### Database
 
@@ -140,10 +156,12 @@ credential-scanner/
 ├── database.py
 ├── report.py
 |
-├── frontend/
+├── static/
 │   ├── index.html
-│   ├── style.css
-│   └── script.js
+│   ├── compare.html
+│   ├── script.js
+│   ├── compare.js
+│   └── style.css
 |
 ├── tests/
 |
@@ -178,13 +196,13 @@ Install the dependencies:
 pip install -r requirements.txt
 ```
 
-Set up the required environment variables in a `.env` file.
-
-For example:
+Create a `.env` file in the project root with your GitHub token:
 
 ```env
 GITHUB_TOKEN=your_github_token
 ```
+
+A [personal access token](https://github.com/settings/tokens) with public repository read access is sufficient.
 
 Start the FastAPI application:
 
@@ -216,6 +234,7 @@ Some current limitations are:
 * Git history scanning can be improved further.
 * The current risk scoring system is relatively simple.
 * CI/CD integration has not been added yet.
+* Commit attribution adds one extra API call per file with findings, which can slow down scans of repositories with many findings.
 
 ## Future Improvements
 
@@ -246,6 +265,7 @@ Some of the main things I worked with were:
 * Risk scoring
 * Database integration
 * Concurrent file scanning
+* Bridging threaded code with async WebSocket connections
 * Connecting a frontend with a backend
 * Thinking about false positives in security tools
 
