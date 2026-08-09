@@ -35,20 +35,23 @@ def should_scan_file(path):
     return False
 
 
-def scan_one_file(file, owner, repo):
+def scan_one_file(file, owner, repo, progress_queue=None):
     path = file["path"]
     url = file["url"]
     
     if not should_scan_file(path):
+        if progress_queue:
+            progress_queue.put({"file": path, "status": "skipped_type"})
         return None
     
     try:
         content = github_fetch.get_file_content(url)
     except Exception:
+        if progress_queue:
+            progress_queue.put({"file": path, "status": "skipped_error"})
         return {"skipped": path}
     
     file_findings = []
-
     commit_info = None
     
     pattern_matches = patterns.scan_text(content)
@@ -59,26 +62,22 @@ def scan_one_file(file, owner, repo):
     
     for match in pattern_matches:
         file_findings.append({
-            "file": path,
-            "type": match["type"],
-            "match": match["match"],
-            "method": "pattern",
-            "commit": commit_info
+            "file": path, "type": match["type"], "match": match["match"],
+            "method": "pattern", "commit": commit_info
         })
     
     for match in entropy_matches:
         file_findings.append({
-            "file": path,
-            "type": "High entropy string",
-            "match": match["string"],
-            "entropy": match["entropy"],
-            "method": "entropy",
-            "commit": commit_info
+            "file": path, "type": "High entropy string", "match": match["string"],
+            "entropy": match["entropy"], "method": "entropy", "commit": commit_info
         })
+    
+    if progress_queue:
+        progress_queue.put({"file": path, "status": "scanned", "findings": len(file_findings)})
     
     return {"findings": file_findings}
 
-def scan_repo(owner, repo):
+def scan_repo(owner, repo, progress_queue=None):
     repo_info = github_fetch.get_repo_info(owner, repo)
     branch = repo_info["default_branch"]
 
@@ -91,7 +90,7 @@ def scan_repo(owner, repo):
     skipped_files = []
     
     with ThreadPoolExecutor(max_workers=10) as executor:
-        scan_with_context = partial(scan_one_file, owner=owner, repo=repo)
+        scan_with_context = partial(scan_one_file, owner=owner, repo=repo, progress_queue=progress_queue)
         results = executor.map(scan_with_context, files)
     
     for result in results:
@@ -103,8 +102,10 @@ def scan_repo(owner, repo):
             findings.extend(result["findings"])
     
     risk_score = risk.calculate_risk_score(findings)
-
     density = round((len(findings) / len(files)) * 100, 2) if len(files) > 0 else 0
+    
+    if progress_queue:
+        progress_queue.put({"status": "done"})
     
     return findings, skipped_files, len(files), risk_score, hygiene, density
 
