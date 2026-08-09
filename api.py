@@ -6,6 +6,8 @@ import github_fetch
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi import WebSocket
+import threading
+import queue as queue_module
 
 app = FastAPI()
 
@@ -122,4 +124,34 @@ def serve_compare_page():
 async def websocket_test(websocket: WebSocket):
     await websocket.accept()
     await websocket.send_text("Hello from the server")
+    await websocket.close()
+
+@app.websocket("/ws/scan")
+async def websocket_scan(websocket: WebSocket):
+    await websocket.accept()
+    data = await websocket.receive_json()
+    owner = data["owner"]
+    repo = data["repo"]
+    progress_queue = queue_module.Queue()
+    def run_scan():
+        result = scanner.scan_repo(owner, repo, progress_queue=progress_queue)
+        progress_queue.put({"status": "final_result", "result": result})
+    thread = threading.Thread(target=run_scan)
+    thread.start()
+    while True:
+        update = progress_queue.get()
+        if update.get("status") == "final_result":
+            findings, skipped, files_scanned, risk_score, hygiene, density = update["result"]
+            await websocket.send_json({
+                "status": "complete",
+                "findings_count": len(findings),
+                "files_scanned": files_scanned,
+                "risk_score": risk_score,
+                "secret_density": density,
+                "hygiene": hygiene,
+                "findings": findings
+            })
+            break
+        else:
+            await websocket.send_json(update)
     await websocket.close()
