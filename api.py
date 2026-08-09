@@ -16,6 +16,12 @@ class ScanRequest(BaseModel):
     owner: str
     repo: str
 
+class CompareRequest(BaseModel):
+    owner1: str
+    repo1: str
+    owner2: str
+    repo2: str
+
 @app.post("/scan")
 def trigger_scan(request: ScanRequest):
     remaining, limit = github_fetch.check_rate_limit()
@@ -41,6 +47,19 @@ def trigger_scan(request: ScanRequest):
     "hygiene": hygiene,
     "findings": findings
     }
+
+@app.post("/compare")
+def compare_repos_route(request: CompareRequest):
+    remaining, limit = github_fetch.check_rate_limit()
+    if remaining < 50:
+        raise HTTPException(status_code=429, detail="Low on GitHub API requests, try again later")
+    
+    try:
+        result = scanner.compare_repos(request.owner1, request.repo1, request.owner2, request.repo2)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    return result
 
 @app.get("/scans")
 def list_scans():
@@ -93,3 +112,7 @@ def scan_history(owner: str, repo: str):
 @app.get("/")
 def serve_frontend():
     return FileResponse("static/index.html")
+
+@app.get("/compare")
+def serve_compare_page():
+    return FileResponse("static/compare.html")
