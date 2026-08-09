@@ -27,26 +27,12 @@ repoInput.addEventListener("keypress", function (e) {
     }
 });
 
-historyBody.addEventListener("click", async function (e) {
+historyBody.addEventListener("click", function (e) {
     const button = e.target.closest(".deleteRowBtn");
     if (!button) {
         return;
     }
-    const owner = button.dataset.owner;
-    const repo = button.dataset.repo;
-    const confirmed = confirm(`This will permanently delete scan history for ${owner}/${repo}. Are you sure?`);
-    if (!confirmed) {
-        return;
-    }
-    try {
-        const response = await fetch(`/scans/${owner}/${repo}`, { method: "DELETE" });
-        if (!response.ok) {
-            throw new Error("Failed to clear history");
-        }
-        loadHistory();
-    } catch (err) {
-        console.error(err);
-    }
+    deleteRepoHistory(button.dataset.owner, button.dataset.repo);
 });
 
 function runScanWebSocket(owner, repo) {
@@ -68,6 +54,23 @@ function runScanWebSocket(owner, repo) {
             reject(new Error("WebSocket connection failed"));
         };
     });
+}
+
+async function deleteRepoHistory(owner, repo) {
+    const confirmed = confirm(`This will permanently delete scan history for ${owner}/${repo}. Are you sure?`);
+    if (!confirmed) {
+        return;
+    }
+    try {
+        const response = await fetch(`/scans/${owner}/${repo}`, { method: "DELETE" });
+        if (!response.ok) {
+            throw new Error("Failed to clear history");
+        }
+        loadHistory();
+    } catch (err) {
+        console.error(err);
+        setStatus("Failed to clear history.", "#f85149");
+    }
 }
 
 async function runScan() {
@@ -215,27 +218,14 @@ async function loadHistory() {
     }
 }
 
-async function clearHistory() {
+function clearHistory() {
     const input = repoInput.value.trim();
     if (!input.includes("/")) {
         setStatus("Enter a repository (owner/repository) before clearing its history.", "#d29922");
         return;
     }
     const [owner, repo] = input.split("/");
-    const confirmed = confirm(`This will permanently delete scan history for ${owner}/${repo}. Are you sure?`);
-    if (!confirmed) {
-        return;
-    }
-    try {
-        const response = await fetch(`/scans/${owner}/${repo}`, { method: "DELETE" });
-        if (!response.ok) {
-            throw new Error("Failed to clear history");
-        }
-        loadHistory();
-    } catch (err) {
-        console.error(err);
-        setStatus("Failed to clear history.", "#f85149");
-    }
+    deleteRepoHistory(owner, repo);
 }
 
 function setStatus(message, color) {
@@ -254,8 +244,9 @@ function escapeHtml(text) {
 }
 
 function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleString();
+    const utcString = dateString.replace(" ", "T") + "Z";
+    const date = new Date(utcString);
+    return date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 }
 
 loadHistory();

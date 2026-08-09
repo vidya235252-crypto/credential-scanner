@@ -135,6 +135,8 @@ async def websocket_scan(websocket: WebSocket):
     progress_queue = queue_module.Queue()
     def run_scan():
         result = scanner.scan_repo(owner, repo, progress_queue=progress_queue)
+        findings, skipped, files_scanned, risk_score, hygiene, density = result
+        database.save_scan(owner, repo, findings, len(skipped), risk_score)
         progress_queue.put({"status": "final_result", "result": result})
     thread = threading.Thread(target=run_scan)
     thread.start()
