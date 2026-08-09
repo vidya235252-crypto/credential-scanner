@@ -5,6 +5,7 @@ import database
 import github_fetch
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi import WebSocket
 
 app = FastAPI()
 
@@ -116,3 +117,9 @@ def serve_frontend():
 @app.get("/compare")
 def serve_compare_page():
     return FileResponse("static/compare.html")
+
+@app.websocket("/ws/test")
+async def websocket_test(websocket: WebSocket):
+    await websocket.accept()
+    await websocket.send_text("Hello from the server")
+    await websocket.close()
