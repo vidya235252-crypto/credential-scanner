@@ -35,6 +35,44 @@ historyBody.addEventListener("click", function (e) {
     deleteRepoHistory(button.dataset.owner, button.dataset.repo);
 });
 
+async function fetchConfidence(findings) {
+    if (findings.length === 0) {
+        return [];
+    }
+    try {
+        const response = await fetch("/findings/confidence", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                findings: findings.map(f => ({
+                    file: f.file,
+                    type: f.type,
+                    match: f.match,
+                    method: f.method,
+                    entropy: f.entropy ?? null
+                }))
+            })
+        });
+        if (!response.ok) {
+            return [];
+        }
+        const data = await response.json();
+        return data.results;
+    } catch (err) {
+        console.error(err);
+        return [];
+    }
+}
+
+function buildConfidenceCell(info) {
+    if (!info) {
+        return "-";
+    }
+    const level = info.confidence >= 70 ? "high" : info.confidence >= 40 ? "medium" : "low";
+    const reasonsText = info.reasons.map(r => `${r.passed ? "\u2713" : "\u2717"} ${r.text}`).join("\n");
+    return `<span class="confidence-badge confidence-${level}" title="${escapeHtml(reasonsText)}">${info.confidence}%</span>`;
+}
+
 function runScanWebSocket(owner, repo) {
     return new Promise((resolve, reject) => {
         const ws = new WebSocket("ws://localhost:8000/ws/scan");
@@ -122,8 +160,9 @@ async function runScan() {
         } else {
             emptyState.classList.add("hidden");
             resultsWrapper.classList.remove("hidden");
+            const confidenceResults = await fetchConfidence(data.findings);
             let hasHigh = false;
-            data.findings.forEach(finding => {
+            data.findings.forEach((finding, index) => {
                 const severity = finding.method === "pattern" ? "HIGH" : "MEDIUM";
                 if (severity === "HIGH")
                     hasHigh = true;
@@ -131,6 +170,7 @@ async function runScan() {
                 const commitCell = finding.commit
                     ? `${finding.commit.author} · ${formatDate(finding.commit.date)}`
                     : "Unknown";
+                const confidenceCell = buildConfidenceCell(confidenceResults[index]);
                 row.innerHTML = `
                     <td><span class="badge ${severity.toLowerCase()}">${severity}</span></td>
                     <td>${finding.type}</td>
@@ -138,6 +178,7 @@ async function runScan() {
                     <td>${capitalize(finding.method)}</td>
                     <td><code>${escapeHtml(finding.match)}</code></td>
                     <td>${commitCell}</td>
+                    <td>${confidenceCell}</td>
                 `;
                 resultsBody.appendChild(row);
             });
@@ -244,8 +285,12 @@ function escapeHtml(text) {
 }
 
 function formatDate(dateString) {
-    const utcString = dateString.replace(" ", "T") + "Z";
-    const date = new Date(utcString);
+    let isoString = dateString.includes(" ") ? dateString.replace(" ", "T") : dateString;
+    const hasTimezone = /[Zz]|[+-]\d{2}:?\d{2}$/.test(isoString);
+    if (!hasTimezone) {
+        isoString += "Z";
+    }
+    const date = new Date(isoString);
     return date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 }
 
