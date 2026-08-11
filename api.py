@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi import WebSocket
 import threading
 import queue as queue_module
+import remediation
 
 app = FastAPI()
 
@@ -141,6 +142,13 @@ def serve_frontend():
 @app.get("/compare")
 def serve_compare_page():
     return FileResponse("static/compare.html")
+
+@app.get("/remediation")
+def get_remediation_map():
+    return {
+        "recommendations": remediation.REMEDIATION_RECOMMENDATIONS,
+        "default": remediation.DEFAULT_RECOMMENDATIONS
+    }
 
 @app.websocket("/ws/test")
 async def websocket_test(websocket: WebSocket):
