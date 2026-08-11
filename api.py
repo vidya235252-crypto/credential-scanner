@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import List, Optional
 import scanner
 import database
 import github_fetch
+import confidence
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi import WebSocket
@@ -24,6 +26,16 @@ class CompareRequest(BaseModel):
     repo1: str
     owner2: str
     repo2: str
+
+class FindingInput(BaseModel):
+    file: str
+    type: str
+    match: str
+    method: str
+    entropy: Optional[float] = None
+
+class ConfidenceRequest(BaseModel):
+    findings: List[FindingInput]
 
 @app.post("/scan")
 def trigger_scan(request: ScanRequest):
@@ -63,6 +75,16 @@ def compare_repos_route(request: CompareRequest):
         raise HTTPException(status_code=400, detail=str(e))
     
     return result
+
+@app.post("/findings/confidence")
+def get_findings_confidence(request: ConfidenceRequest):
+    results = []
+    for finding in request.findings:
+        finding_dict = {"type": finding.type, "match": finding.match, "method": finding.method}
+        if finding.entropy is not None:
+            finding_dict["entropy"] = finding.entropy
+        results.append(confidence.calculate_confidence(finding_dict, finding.file))
+    return {"results": results}
 
 @app.get("/scans")
 def list_scans():

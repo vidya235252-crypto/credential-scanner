@@ -4,7 +4,7 @@
     box-sizing: border-box;
 }
 
-:root {
+:root, [data-theme="dark"] {
     --bg: #0d1117;
     --surface: #161b22;
     --surface-light: #21262d;
@@ -16,6 +16,28 @@
     --success: #3fb950;
     --danger: #f85149;
     --warning: #d29922;
+}
+
+[data-theme="light"] {
+    --bg: #f6f8fa;
+    --surface: #ffffff;
+    --surface-light: #f0f2f5;
+    --border: #d0d7de;
+    --primary: #0969da;
+    --primary-hover: #1178e0;
+    --text: #1f2328;
+    --muted: #57606a;
+    --success: #1a7f37;
+    --danger: #cf222e;
+    --warning: #9a6700;
+}
+
+body {
+    transition: background-color .2s, color .2s;
+}
+
+.panel, .summary-card {
+    transition: background-color .2s, border-color .2s;
 }
 
 body {
@@ -38,6 +60,32 @@ header {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.theme-toggle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 17px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: .2s;
+}
+
+.theme-toggle:hover {
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 .logo i {
@@ -262,6 +310,34 @@ tbody tr:hover {
 
 .safe {
     background: var(--success);
+}
+
+.confidence-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: help;
+    border: 1px solid transparent;
+}
+
+.confidence-high {
+    color: var(--success);
+    border-color: var(--success);
+    background: rgba(63,185,80,.1);
+}
+
+.confidence-medium {
+    color: var(--warning);
+    border-color: var(--warning);
+    background: rgba(210,153,34,.1);
+}
+
+.confidence-low {
+    color: var(--danger);
+    border-color: var(--danger);
+    background: rgba(248,81,73,.1);
 }
 
 .empty {

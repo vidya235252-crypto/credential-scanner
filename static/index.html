@@ -6,6 +6,7 @@
     <title>RepoSentinel | GitHub Secret Scanner</title>
 
     <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -20,9 +21,14 @@
 
     <header>
 
-        <div class="logo">
-            <i class="fa-solid fa-shield-halved"></i>
-            <h1>RepoSentinel</h1>
+        <div class="header-top">
+            <div class="logo">
+                <i class="fa-solid fa-shield-halved"></i>
+                <h1>RepoSentinel</h1>
+            </div>
+            <button id="themeToggle" class="theme-toggle" title="Toggle light/dark theme">
+                <i class="fa-solid fa-moon"></i>
+            </button>
         </div>
 
         <p class="subtitle">
@@ -210,6 +216,8 @@
                         <th>Value</th>
 
                         <th>Introduced</th>
+
+                        <th>Confidence</th>
 
                     </tr>
 
