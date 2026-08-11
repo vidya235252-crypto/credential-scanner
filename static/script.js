@@ -11,7 +11,7 @@ const riskLevel = document.getElementById("riskLevel");
 const secretDensity = document.getElementById("secretDensity");
 const emptyState = document.getElementById("emptyState");
 const resultsWrapper = document.getElementById("resultsWrapper");
-const resultsBody = document.getElementById("resultsBody");
+const resultsCards = document.getElementById("resultsCards");
 const historyBody = document.getElementById("historyBody");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 const trendChartCanvas = document.getElementById("trendChart");
@@ -65,6 +65,15 @@ async function fetchConfidence(findings) {
     }
 }
 
+function buildConfidenceCell(info) {
+    if (!info) {
+        return "-";
+    }
+    const level = info.confidence >= 70 ? "high" : info.confidence >= 40 ? "medium" : "low";
+    const reasonsText = info.reasons.map(r => `${r.passed ? "\u2713" : "\u2717"} ${r.text}`).join("\n");
+    return `<span class="confidence-badge confidence-${level}" title="${escapeHtml(reasonsText)}">${info.confidence}%</span>`;
+}
+
 async function loadRemediationMap() {
     if (remediationMap) {
         return remediationMap;
@@ -88,13 +97,32 @@ function buildRemediationCell(findingType) {
     return `<span class="remediation-icon" title="${escapeHtml(tooltipText)}"><i class="fa-solid fa-screwdriver-wrench"></i></span>`;
 }
 
-function buildConfidenceCell(info) {
-    if (!info) {
-        return "-";
-    }
-    const level = info.confidence >= 70 ? "high" : info.confidence >= 40 ? "medium" : "low";
-    const reasonsText = info.reasons.map(r => `${r.passed ? "\u2713" : "\u2717"} ${r.text}`).join("\n");
-    return `<span class="confidence-badge confidence-${level}" title="${escapeHtml(reasonsText)}">${info.confidence}%</span>`;
+function buildFindingCard(finding, confidenceInfo) {
+    const severity = finding.method === "pattern" ? "HIGH" : "MEDIUM";
+    const commitCell = finding.commit
+        ? `${finding.commit.author} \u00b7 ${formatDate(finding.commit.date)}`
+        : "Unknown";
+    const confidenceCell = buildConfidenceCell(confidenceInfo);
+    const remediationCell = buildRemediationCell(finding.type);
+    const card = document.createElement("div");
+    card.className = "finding-card";
+    card.innerHTML = `
+        <div class="finding-card-header">
+            <span class="badge ${severity.toLowerCase()}">${severity}</span>
+            <span class="finding-type">${finding.type}</span>
+            ${confidenceCell}
+        </div>
+        <div class="finding-card-body">
+            <p class="finding-file"><i class="fa-solid fa-file"></i> ${finding.file}</p>
+            <code class="finding-value" title="${escapeHtml(finding.match)}">${escapeHtml(finding.match)}</code>
+        </div>
+        <div class="finding-card-footer">
+            <span>${capitalize(finding.method)} detection</span>
+            <span>${commitCell}</span>
+            ${remediationCell}
+        </div>
+    `;
+    return card;
 }
 
 function runScanWebSocket(owner, repo) {
@@ -145,7 +173,7 @@ async function runScan() {
     loader.classList.remove("hidden");
     scanBtn.disabled = true;
     setStatus("Scanning repository...", "#58a6ff");
-    resultsBody.innerHTML = "";
+    resultsCards.innerHTML = "";
     emptyState.classList.remove("hidden");
     resultsWrapper.classList.add("hidden");
     filesScanned.textContent = "-";
@@ -169,8 +197,8 @@ async function runScan() {
             : "-";
         const hygieneDiv = document.getElementById("hygieneChecks");
         hygieneDiv.innerHTML = `
-            <p>${data.hygiene.has_gitignore ? "✅" : "❌"} .gitignore</p>
-            <p>${data.hygiene.has_license ? "✅" : "❌"} License</p>
+            <p>${data.hygiene.has_gitignore ? "\u2705" : "\u274c"} .gitignore</p>
+            <p>${data.hygiene.has_license ? "\u2705" : "\u274c"} License</p>
         `;
         if (data.findings.length === 0) {
             riskLevel.textContent = "SAFE";
@@ -184,29 +212,11 @@ async function runScan() {
         } else {
             emptyState.classList.add("hidden");
             resultsWrapper.classList.remove("hidden");
-            const confidenceResults = await fetchConfidence(data.findings);
-            let hasHigh = false;
             await loadRemediationMap();
+            const confidenceResults = await fetchConfidence(data.findings);
             data.findings.forEach((finding, index) => {
-                const severity = finding.method === "pattern" ? "HIGH" : "MEDIUM";
-                if (severity === "HIGH")
-                    hasHigh = true;
-                const row = document.createElement("tr");
-                const commitCell = finding.commit
-                    ? `${finding.commit.author} · ${formatDate(finding.commit.date)}`
-                    : "Unknown";
-                const confidenceCell = buildConfidenceCell(confidenceResults[index]);
-                row.innerHTML = `
-                    <td><span class="badge ${severity.toLowerCase()}">${severity}</span></td>
-                    <td>${finding.type}</td>
-                    <td>${finding.file}</td>
-                    <td>${capitalize(finding.method)}</td>
-                    <td><code>${escapeHtml(finding.match)}</code></td>
-                    <td>${commitCell}</td>
-                    <td>${confidenceCell}</td>
-                    <td>${buildRemediationCell(finding.type)}</td>
-                `;
-                resultsBody.appendChild(row);
+                const card = buildFindingCard(finding, confidenceResults[index]);
+                resultsCards.appendChild(card);
             });
             riskLevel.textContent = data.risk_score + "/100";
         }
@@ -273,7 +283,7 @@ async function loadHistory() {
                 <td>${scan.owner}/${scan.repo}</td>
                 <td>${formatDate(scan.scanned_at)}</td>
                 <td>
-                   <button class="deleteRowBtn" data-owner="${scan.owner}" data-repo="${scan.repo}">
+                    <button class="deleteRowBtn" data-owner="${scan.owner}" data-repo="${scan.repo}">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </td>
@@ -311,11 +321,11 @@ function escapeHtml(text) {
 }
 
 function formatDate(dateString) {
-    let isoString = dateString.includes(" ") ? dateString.replace(" ", "T") : dateString;
-    const hasTimezone = /[Zz]|[+-]\d{2}:?\d{2}$/.test(isoString);
-    if (!hasTimezone) {
-        isoString += "Z";
-    }
+    // SQLite's datetime('now') strings have no timezone marker, e.g. "2026-08-10 13:14:00".
+    // GitHub API commit dates already come as full ISO 8601 strings with timezone info, e.g. "2026-08-09T12:00:00Z".
+    // Only append "Z" when the string doesn't already carry timezone info, or it becomes unparseable ("...ZZ").
+    const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(dateString);
+    const isoString = hasTimezone ? dateString : dateString.replace(" ", "T") + "Z";
     const date = new Date(isoString);
     return date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 }
