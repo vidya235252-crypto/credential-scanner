@@ -16,6 +16,7 @@ const historyBody = document.getElementById("historyBody");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 const trendChartCanvas = document.getElementById("trendChart");
 let trendChartInstance = null;
+let remediationMap = null;
 
 scanBtn.addEventListener("click", runScan);
 refreshBtn.addEventListener("click", loadHistory);
@@ -62,6 +63,29 @@ async function fetchConfidence(findings) {
         console.error(err);
         return [];
     }
+}
+
+async function loadRemediationMap() {
+    if (remediationMap) {
+        return remediationMap;
+    }
+    try {
+        const response = await fetch("/remediation");
+        remediationMap = await response.json();
+    } catch (err) {
+        console.error(err);
+        remediationMap = { recommendations: {}, default: [] };
+    }
+    return remediationMap;
+}
+
+function buildRemediationCell(findingType) {
+    if (!remediationMap) {
+        return "-";
+    }
+    const steps = remediationMap.recommendations[findingType] || remediationMap.default;
+    const tooltipText = steps.map((step, i) => `${i + 1}. ${step}`).join("\n");
+    return `<span class="remediation-icon" title="${escapeHtml(tooltipText)}"><i class="fa-solid fa-screwdriver-wrench"></i></span>`;
 }
 
 function buildConfidenceCell(info) {
@@ -162,6 +186,7 @@ async function runScan() {
             resultsWrapper.classList.remove("hidden");
             const confidenceResults = await fetchConfidence(data.findings);
             let hasHigh = false;
+            await loadRemediationMap();
             data.findings.forEach((finding, index) => {
                 const severity = finding.method === "pattern" ? "HIGH" : "MEDIUM";
                 if (severity === "HIGH")
@@ -179,6 +204,7 @@ async function runScan() {
                     <td><code>${escapeHtml(finding.match)}</code></td>
                     <td>${commitCell}</td>
                     <td>${confidenceCell}</td>
+                    <td>${buildRemediationCell(finding.type)}</td>
                 `;
                 resultsBody.appendChild(row);
             });
@@ -247,7 +273,7 @@ async function loadHistory() {
                 <td>${scan.owner}/${scan.repo}</td>
                 <td>${formatDate(scan.scanned_at)}</td>
                 <td>
-                    <button class="deleteRowBtn" data-owner="${scan.owner}" data-repo="${scan.repo}">
+                   <button class="deleteRowBtn" data-owner="${scan.owner}" data-repo="${scan.repo}">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </td>

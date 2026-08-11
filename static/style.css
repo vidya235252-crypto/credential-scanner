@@ -312,6 +312,22 @@ tbody tr:hover {
     background: var(--success);
 }
 
+.remediation-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: var(--primary);
+    cursor: help;
+    transition: .2s;
+}
+
+.remediation-icon:hover {
+    background: rgba(88, 166, 255, .12);
+}
+
 .confidence-badge {
     display: inline-block;
     padding: 4px 10px;
