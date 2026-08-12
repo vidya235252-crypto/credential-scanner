@@ -58,13 +58,13 @@ def init_db():
     connection.commit()
     connection.close()
 
-def save_scan(owner, repo, findings, skipped_count, risk_score):
+def save_scan(owner, repo, findings, skipped_count, risk_score, user_id):
     connection = get_connection()
     cursor = connection.cursor()
-    
+
     cursor.execute(
-        "INSERT INTO scans (owner, repo, scanned_at, skipped_count, findings_count, risk_score) VALUES (?, ?, datetime('now'), ?, ?, ?)",
-        (owner, repo, skipped_count, len(findings), risk_score)
+        "INSERT INTO scans (owner, repo, scanned_at, skipped_count, findings_count, risk_score, user_id) VALUES (?, ?, datetime('now'), ?, ?, ?, ?)",
+        (owner, repo, skipped_count, len(findings), risk_score, user_id)
     )
     
     scan_id = cursor.lastrowid
@@ -80,10 +80,13 @@ def save_scan(owner, repo, findings, skipped_count, risk_score):
     connection.close()
     return scan_id
 
-def get_all_scans():
+def get_all_scans(user_id):
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute("SELECT id, owner, repo, scanned_at, skipped_count FROM scans ORDER BY scanned_at DESC")
+    cursor.execute(
+        "SELECT id, owner, repo, scanned_at, skipped_count FROM scans WHERE user_id = ? ORDER BY scanned_at DESC",
+        (user_id,)
+    )
     rows = cursor.fetchall()
     connection.close()
     return rows
@@ -109,9 +112,14 @@ def get_user_by_email(email):
     connection.close()
     return row
 
-def get_scan_findings(scan_id):
+def get_scan_findings(scan_id, user_id):
     connection = get_connection()
     cursor = connection.cursor()
+    cursor.execute("SELECT user_id FROM scans WHERE id = ?", (scan_id,))
+    owner_row = cursor.fetchone()
+    if not owner_row or owner_row[0] != user_id:
+        connection.close()
+        return None
     cursor.execute("SELECT file, type, match, method, severity FROM findings WHERE scan_id = ?", (scan_id,))
     rows = cursor.fetchall()
     connection.close()
@@ -129,34 +137,35 @@ if __name__ == "__main__":
     print(get_all_scans())
     print(get_scan_findings(scan_id))
 
-def get_scan_history_for_repo(owner, repo):
+def get_scan_history_for_repo(owner, repo, user_id):
     connection = get_connection()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT scanned_at, findings_count, risk_score FROM scans WHERE owner = ? AND repo = ? ORDER BY scanned_at ASC",
-        (owner, repo)
+        "SELECT scanned_at, findings_count, risk_score FROM scans WHERE owner = ? AND repo = ? AND user_id = ? ORDER BY scanned_at ASC",
+        (owner, repo, user_id)
     )
     rows = cursor.fetchall()
     connection.close()
     return rows
 
-def clear_scans_for_repo(owner, repo):
+def clear_scans_for_repo(owner, repo, user_id):
     connection = get_connection()
     cursor = connection.cursor()
-    
+
     cursor.execute(
-        "SELECT id FROM scans WHERE owner = ? AND repo = ?",
-        (owner, repo)
+        "SELECT id FROM scans WHERE owner = ? AND repo = ? AND user_id = ?",
+        (owner, repo, user_id)
     )
     scan_ids = [row[0] for row in cursor.fetchall()]
-    
+
     for scan_id in scan_ids:
         cursor.execute("DELETE FROM findings WHERE scan_id = ?", (scan_id,))
-    
+
     cursor.execute(
-        "DELETE FROM scans WHERE owner = ? AND repo = ?",
-        (owner, repo)
+        "DELETE FROM scans WHERE owner = ? AND repo = ? AND user_id = ?",
+        (owner, repo, user_id)
     )
-    
+
     connection.commit()
     connection.close()
+    
