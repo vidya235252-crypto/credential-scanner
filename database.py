@@ -40,6 +40,20 @@ def init_db():
             FOREIGN KEY (scan_id) REFERENCES scans(id)
         )
     """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE,
+        password_hash TEXT,
+        created_at TEXT
+    )
+""")
+
+    try:
+        cursor.execute("ALTER TABLE scans ADD COLUMN user_id INTEGER")
+    except sqlite3.OperationalError:
+        pass
     
     connection.commit()
     connection.close()
@@ -73,6 +87,27 @@ def get_all_scans():
     rows = cursor.fetchall()
     connection.close()
     return rows
+
+def create_user(email, password_hash):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute(
+        "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, datetime('now'))",
+        (email, password_hash)
+    )
+    user_id = cursor.lastrowid
+    connection.commit()
+    connection.close()
+    return user_id
+
+
+def get_user_by_email(email):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT id, email, password_hash FROM users WHERE email = ?", (email,))
+    row = cursor.fetchone()
+    connection.close()
+    return row
 
 def get_scan_findings(scan_id):
     connection = get_connection()
