@@ -4,3 +4,5 @@ requests
 pydantic
 python-dotenv
 pytest
+pyjwt
+bcrypt
