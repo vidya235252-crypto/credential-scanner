@@ -66,7 +66,7 @@ def login(request: LoginRequest):
     return {"access_token": token, "token_type": "bearer"}
 
 @app.post("/scan")
-def trigger_scan(request: ScanRequest):
+def trigger_scan(request: ScanRequest, current_user: dict = Depends(auth.get_current_user)):
     remaining, limit = github_fetch.check_rate_limit()
     if remaining < 50:
         raise HTTPException(status_code=429, detail="Low on GitHub API requests, try again later")
@@ -76,7 +76,7 @@ def trigger_scan(request: ScanRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-    scan_id = database.save_scan(request.owner, request.repo, findings, len(skipped), risk_score)
+    scan_id = database.save_scan(request.owner, request.repo, findings, len(skipped), risk_score, current_user["id"])
     
     return {
     "scan_id": scan_id,
@@ -92,7 +92,7 @@ def trigger_scan(request: ScanRequest):
     }
 
 @app.post("/compare")
-def compare_repos_route(request: CompareRequest):
+def compare_repos_route(request: CompareRequest, current_user: dict = Depends(auth.get_current_user)):
     remaining, limit = github_fetch.check_rate_limit()
     if remaining < 50:
         raise HTTPException(status_code=429, detail="Low on GitHub API requests, try again later")
@@ -115,8 +115,8 @@ def get_findings_confidence(request: ConfidenceRequest):
     return {"results": results}
 
 @app.get("/scans")
-def list_scans():
-    rows = database.get_all_scans()
+def list_scans(current_user: dict = Depends(auth.get_current_user)):
+    rows = database.get_all_scans(current_user["id"])
     scans = []
     for row in rows:
         scans.append({
@@ -129,13 +129,13 @@ def list_scans():
     return scans
 
 @app.delete("/scans/{owner}/{repo}")
-def clear_repo_scans(owner: str, repo: str):
-    database.clear_scans_for_repo(owner, repo)
+def clear_repo_scans(owner: str, repo: str, current_user: dict = Depends(auth.get_current_user)):
+    database.clear_scans_for_repo(owner, repo, current_user["id"])
     return {"message": f"Scan history cleared for {owner}/{repo}"}
 
 @app.get("/scans/{scan_id}")
-def get_scan(scan_id: int):
-    rows = database.get_scan_findings(scan_id)
+def get_scan(scan_id: int, current_user: dict = Depends(auth.get_current_user)):
+    rows = database.get_scan_findings(scan_id, current_user["id"])
     if not rows:
         raise HTTPException(status_code=404, detail="Scan not found or has no findings")
     
@@ -151,8 +151,8 @@ def get_scan(scan_id: int):
     return {"scan_id": scan_id, "findings": findings}
 
 @app.get("/scans/history/{owner}/{repo}")
-def scan_history(owner: str, repo: str):
-    rows = database.get_scan_history_for_repo(owner, repo)
+def scan_history(owner: str, repo: str, current_user: dict = Depends(auth.get_current_user)):
+    rows = database.get_scan_history_for_repo(owner, repo, current_user["id"])
     history = []
     for row in rows:
         history.append({
