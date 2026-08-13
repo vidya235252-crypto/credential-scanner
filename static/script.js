@@ -129,9 +129,21 @@ function runScanWebSocket(owner, repo) {
     return new Promise((resolve, reject) => {
         const ws = new WebSocket("ws://localhost:8000/ws/scan");
         ws.onopen = function () {
-            ws.send(JSON.stringify({ owner, repo }));
+        const token = localStorage.getItem("access_token");
+        ws.send(JSON.stringify({ owner, repo, token }));
         };
         ws.onmessage = function (event) {
+    const data = JSON.parse(event.data);
+    if (data.status === "error") {
+        ws.close();
+        reject(new Error(data.message));
+    } else if (data.status === "complete") {
+        ws.close();
+        resolve(data);
+    } else if (data.status === "scanned" || data.status === "skipped_type" || data.status === "skipped_error") {
+        loaderText.textContent = `Scanned ${data.file}...`;
+    }
+};ws.onmessage = function (event) {
             const data = JSON.parse(event.data);
             if (data.status === "complete") {
                 ws.close();
