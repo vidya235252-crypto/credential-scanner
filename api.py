@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 import scanner
@@ -187,14 +187,31 @@ async def websocket_test(websocket: WebSocket):
 async def websocket_scan(websocket: WebSocket):
     await websocket.accept()
     data = await websocket.receive_json()
+
+    token = data.get("token")
+    if not token:
+        await websocket.send_json({"status": "error", "message": "Missing authentication token"})
+        await websocket.close(code=4001)
+        return
+
+    try:
+        payload = auth.decode_access_token(token)
+    except HTTPException:
+        await websocket.send_json({"status": "error", "message": "Invalid or expired token"})
+        await websocket.close(code=4001)
+        return
+
+    user_id = int(payload["sub"])
     owner = data["owner"]
     repo = data["repo"]
     progress_queue = queue_module.Queue()
+
     def run_scan():
         result = scanner.scan_repo(owner, repo, progress_queue=progress_queue)
         findings, skipped, files_scanned, risk_score, hygiene, density = result
-        database.save_scan(owner, repo, findings, len(skipped), risk_score)
+        database.save_scan(owner, repo, findings, len(skipped), risk_score, user_id)
         progress_queue.put({"status": "final_result", "result": result})
+
     thread = threading.Thread(target=run_scan)
     thread.start()
     while True:
