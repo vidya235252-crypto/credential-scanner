@@ -133,7 +133,8 @@ function buildFindingCard(finding, confidenceInfo) {
 
 function runScanWebSocket(owner, repo) {
     return new Promise((resolve, reject) => {
-        const ws = new WebSocket("ws://localhost:8000/ws/scan");
+        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/scan`);
         ws.onopen = function () {
         const token = localStorage.getItem("access_token");
         ws.send(JSON.stringify({ owner, repo, token }));
