@@ -7,7 +7,8 @@
 
     <link rel="stylesheet" href="/static/style.css">
     <script src="/static/theme.js"></script>
-
+    <script src="/static/authGuard.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet"
@@ -26,9 +27,14 @@
                 <i class="fa-solid fa-shield-halved"></i>
                 <h1>RepoSentinel</h1>
             </div>
-            <button id="themeToggle" class="theme-toggle" title="Toggle light/dark theme">
-                <i class="fa-solid fa-moon"></i>
-            </button>
+            <div class="header-actions">
+                <button id="themeToggle" class="theme-toggle" title="Toggle light/dark theme">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <button id="logoutBtn" class="theme-toggle" title="Log out">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
         </div>
 
         <p class="subtitle">
@@ -225,13 +231,6 @@
 
                 </button>
 
-                <button id="clearHistoryBtn">
-
-                    <i class="fa-solid fa-trash"></i>
-
-                    Clear History
-
-                </button>
 
             </div>
 
@@ -242,8 +241,6 @@
             <thead>
 
                 <tr>
-
-                    <th>ID</th>
 
                     <th>Repository</th>
 
@@ -270,6 +267,7 @@
 
 </div>
 
+<script src="/static/apiClient.js"></script>
 <script src="/static/script.js"></script>
 
 </body>

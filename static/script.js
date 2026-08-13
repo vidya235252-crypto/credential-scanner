@@ -13,14 +13,12 @@ const emptyState = document.getElementById("emptyState");
 const resultsWrapper = document.getElementById("resultsWrapper");
 const resultsCards = document.getElementById("resultsCards");
 const historyBody = document.getElementById("historyBody");
-const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 const trendChartCanvas = document.getElementById("trendChart");
 let trendChartInstance = null;
 let remediationMap = null;
 
 scanBtn.addEventListener("click", runScan);
 refreshBtn.addEventListener("click", loadHistory);
-clearHistoryBtn.addEventListener("click", clearHistory);
 
 repoInput.addEventListener("keypress", function (e) {
     if (e.key === "Enter") {
@@ -307,15 +305,6 @@ async function loadHistory() {
     }
 }
 
-function clearHistory() {
-    const input = repoInput.value.trim();
-    if (!input.includes("/")) {
-        setStatus("Enter a repository (owner/repository) before clearing its history.", "#d29922");
-        return;
-    }
-    const [owner, repo] = input.split("/");
-    deleteRepoHistory(owner, repo);
-}
 
 function setStatus(message, color) {
     status.textContent = message;
