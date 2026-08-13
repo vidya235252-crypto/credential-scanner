@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepoSentinel | GitHub Secret Scanner</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+
+<div class="container">
+
+    <header>
+        <div class="header-top">
+            <div class="logo">
+                <i class="fa-solid fa-shield-halved"></i>
+                <h1>RepoSentinel</h1>
+            </div>
+            <button id="themeToggle" class="theme-toggle" title="Toggle light/dark theme">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <section class="hero">
+        <h2 class="hero-title">Find leaked credentials before attackers do.</h2>
+        <p class="hero-subtitle">
+            Scan any GitHub repository for exposed API keys, AWS credentials, and secrets —
+            with explainable confidence scoring and specific remediation steps for every finding.
+        </p>
+        <div class="hero-cta">
+            <a href="/login" class="cta-primary">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i> Get Started
+            </a>
+            <a href="https://github.com/vidya235252-crypto/credential-scanner" class="cta-secondary" target="_blank" rel="noopener">
+                <i class="fa-brands fa-github"></i> View Source
+            </a>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2><i class="fa-solid fa-star"></i> What it does</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                <h3>Pattern + Entropy Detection</h3>
+                <p>Catches known credential formats (AWS keys, Slack tokens, private keys) plus high-entropy strings that don't match any known pattern.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fa-solid fa-percent"></i>
+                <h3>Explainable Confidence Scoring</h3>
+                <p>Every finding gets a confidence score with the specific reasons behind it — not just a black-box number.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+                <h3>Remediation Guidance</h3>
+                <p>Specific, actionable steps for each finding type — rotate, revoke, and remove from history.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fa-solid fa-bolt"></i>
+                <h3>Real-Time Scan Progress</h3>
+                <p>Live per-file progress over a WebSocket connection instead of a static loading spinner.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fa-solid fa-code-compare"></i>
+                <h3>Repository Comparison</h3>
+                <p>Scan two repositories in parallel and see exactly which finding types differ between them.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fa-solid fa-chart-line"></i>
+                <h3>Historical Trends</h3>
+                <p>Track a repository's risk score over time across every scan, per account.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2><i class="fa-solid fa-bug"></i> See it in action</h2>
+        <p class="demo-caption">Example output from a real scan — no live scan needed to preview this.</p>
+
+        <div class="findings-cards">
+            <div class="finding-card">
+                <div class="finding-card-header">
+                    <span class="badge high">HIGH</span>
+                    <span class="finding-type">AWS Access Key ID</span>
+                    <span class="confidence-badge confidence-medium" title="Pattern match, but low entropy">80%</span>
+                </div>
+                <div class="finding-card-body">
+                    <p class="finding-file"><i class="fa-solid fa-file"></i> .travis.yml</p>
+                    <code class="finding-value">AKIAJAA49FFSFRFN6AAA</code>
+                </div>
+                <div class="finding-card-footer">
+                    <span>Pattern detection</span>
+                    <span>atrull &middot; 2/8/2019</span>
+                    <span class="remediation-icon" title="1. Rotate the credential in AWS IAM immediately.&#10;2. Revoke the exposed access key.">
+                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                    </span>
+                </div>
+            </div>
+
+            <div class="finding-card">
+                <div class="finding-card-header">
+                    <span class="badge high">HIGH</span>
+                    <span class="finding-type">AWS Secret Key</span>
+                    <span class="confidence-badge confidence-high" title="Pattern match, high entropy, real credential">100%</span>
+                </div>
+                <div class="finding-card-body">
+                    <p class="finding-file"><i class="fa-solid fa-file"></i> README.md</p>
+                    <code class="finding-value">AWS_SECRET_ACCESS_KEY="u9N1o8s+u3q4uwt9s8dfsd...</code>
+                </div>
+                <div class="finding-card-footer">
+                    <span>Pattern detection</span>
+                    <span>Alex Trull &middot; 5/7/2019</span>
+                    <span class="remediation-icon" title="1. Rotate the credential in AWS IAM immediately.&#10;2. Revoke the exposed secret key.">
+                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                    </span>
+                </div>
+            </div>
+
+            <div class="finding-card">
+                <div class="finding-card-header">
+                    <span class="badge medium">MEDIUM</span>
+                    <span class="finding-type">High entropy string</span>
+                    <span class="confidence-badge confidence-high" title="Genuinely high entropy, not a placeholder">85%</span>
+                </div>
+                <div class="finding-card-body">
+                    <p class="finding-file"><i class="fa-solid fa-file"></i> README.md</p>
+                    <code class="finding-value">u9N1o8s+u3q4uwt9s8dfsdf/afx/d/24449YiNHN</code>
+                </div>
+                <div class="finding-card-footer">
+                    <span>Entropy detection</span>
+                    <span>Alex Trull &middot; 5/7/2019</span>
+                    <span class="remediation-icon" title="1. Manually verify whether this value is a real credential.&#10;2. If real, rotate/revoke it.">
+                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-footer-cta">
+            <a href="/login" class="cta-primary"><i class="fa-solid fa-arrow-right-to-bracket"></i> Sign up to scan your own repos</a>
+        </div>
+    </section>
+
+    <footer>
+        RepoSentinel • Secret Leak Scanner
+    </footer>
+
+</div>
+
+</body>
+</html>

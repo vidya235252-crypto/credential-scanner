@@ -181,6 +181,10 @@ def get_remediation_map():
 def serve_login_page():
     return FileResponse("static/login.html")
 
+@app.get("/welcome")
+def serve_landing_page():
+    return FileResponse("static/scanner.html")
+
 @app.websocket("/ws/test")
 async def websocket_test(websocket: WebSocket):
     await websocket.accept()
