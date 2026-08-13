@@ -19,7 +19,7 @@ async function runCompare() {
     setCompareStatus("", "");
     compareResults.classList.add("hidden");
     try {
-        const response = await fetch("/compare", {
+        const response = await authFetch("/compare", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ owner1, repo1, owner2, repo2 })
