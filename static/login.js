@@ -40,7 +40,7 @@ authForm.addEventListener("submit", async function (e) {
             throw new Error(data.detail || "Authentication failed");
         }
         localStorage.setItem("access_token", data.access_token);
-        window.location.href = "/";
+        window.location.href = "/dashboard";
     } catch (err) {
         setStatus(err.message, "#f85149");
         authSubmitBtn.disabled = false;

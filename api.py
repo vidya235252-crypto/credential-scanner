@@ -12,6 +12,9 @@ import threading
 import queue as queue_module
 import remediation
 import auth
+from fastapi import Request
+from fastapi.responses import RedirectResponse
+import secrets
 
 app = FastAPI()
 
@@ -56,6 +59,44 @@ def signup(request: SignupRequest):
     user_id = database.create_user(request.email, password_hash)
     token = auth.create_access_token(user_id, request.email)
     return {"access_token": token, "token_type": "bearer"}
+
+@app.get("/auth/github/login")
+def github_login():
+    state = secrets.token_urlsafe(24)
+    url = auth.build_github_authorize_url(state)
+    response = RedirectResponse(url)
+    response.set_cookie("github_oauth_state", state, httponly=True, max_age=600, samesite="lax")
+    return response
+
+
+@app.get("/auth/github/callback")
+def github_callback(code: str, state: str, request: Request):
+    cookie_state = request.cookies.get("github_oauth_state")
+    if not cookie_state or cookie_state != state:
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+
+    github_access_token = auth.exchange_github_code(code)
+    github_user = auth.get_github_user(github_access_token)
+
+    if not github_user["email"]:
+        raise HTTPException(status_code=400, detail="GitHub account has no verified email")
+
+    existing_by_github = database.get_user_by_github_id(github_user["github_id"])
+    if existing_by_github:
+        user_id, user_email = existing_by_github[0], existing_by_github[1]
+    else:
+        existing_by_email = database.get_user_by_email(github_user["email"])
+        if existing_by_email:
+            database.link_github_to_user(existing_by_email[0], github_user["github_id"])
+            user_id, user_email = existing_by_email[0], existing_by_email[1]
+        else:
+            user_id = database.create_user_from_github(github_user["email"], github_user["github_id"])
+            user_email = github_user["email"]
+
+    jwt_token = auth.create_access_token(user_id, user_email)
+    response = RedirectResponse(f"/static/oauth-complete.html?token={jwt_token}")
+    response.delete_cookie("github_oauth_state")
+    return response
 
 @app.post("/auth/login")
 def login(request: LoginRequest):
@@ -164,6 +205,10 @@ def scan_history(owner: str, repo: str, current_user: dict = Depends(auth.get_cu
 
 @app.get("/")
 def serve_frontend():
+    return FileResponse("static/scanner.html")
+
+@app.get("/dashboard")
+def serve_dashboard():
     return FileResponse("static/index.html")
 
 @app.get("/compare")
