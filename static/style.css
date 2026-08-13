@@ -571,3 +571,32 @@ footer {
     margin-top: 14px;
     text-align: center;
 }
+
+.auth-subtitle {
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.auth-features {
+    list-style: none;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.auth-features li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.auth-features i {
+    color: var(--success);
+    font-size: 12px;
+}
