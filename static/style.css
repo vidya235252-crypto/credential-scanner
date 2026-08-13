@@ -82,6 +82,11 @@ header {
     justify-content: center;
     transition: .2s;
 }
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
 .theme-toggle:hover {
     border-color: var(--primary);
@@ -490,4 +495,79 @@ footer {
         grid-template-columns: 1fr;
     }
 
+}
+
+.auth-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 90vh;
+}
+
+.auth-panel {
+    width: min(420px, 90%);
+}
+
+.auth-panel .logo {
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.auth-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-light);
+    color: var(--muted);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: .2s;
+}
+
+.auth-tab.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+#authForm {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#authForm input {
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-light);
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+}
+
+#authForm input:focus {
+    border-color: var(--primary);
+}
+
+#authForm button[type="submit"] {
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#authStatus {
+    margin-top: 14px;
+    text-align: center;
 }
