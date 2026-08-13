@@ -28,6 +28,14 @@ repoInput.addEventListener("keypress", function (e) {
     }
 });
 
+const logoutBtn = document.getElementById("logoutBtn");
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", function () {
+        localStorage.removeItem("access_token");
+        window.location.href = "/login";
+    });
+}
+
 historyBody.addEventListener("click", function (e) {
     const button = e.target.closest(".deleteRowBtn");
     if (!button) {
@@ -143,15 +151,7 @@ function runScanWebSocket(owner, repo) {
     } else if (data.status === "scanned" || data.status === "skipped_type" || data.status === "skipped_error") {
         loaderText.textContent = `Scanned ${data.file}...`;
     }
-};ws.onmessage = function (event) {
-            const data = JSON.parse(event.data);
-            if (data.status === "complete") {
-                ws.close();
-                resolve(data);
-            } else if (data.status === "scanned" || data.status === "skipped_type" || data.status === "skipped_error") {
-                loaderText.textContent = `Scanned ${data.file}...`;
-            }
-        };
+};
         ws.onerror = function (err) {
             reject(new Error("WebSocket connection failed"));
         };
@@ -164,7 +164,7 @@ async function deleteRepoHistory(owner, repo) {
         return;
     }
     try {
-        const response = await fetch(`/scans/${owner}/${repo}`, { method: "DELETE" });
+        const response = await authFetch(`/scans/${owner}/${repo}`, { method: "DELETE" });
         if (!response.ok) {
             throw new Error("Failed to clear history");
         }
@@ -243,7 +243,7 @@ async function runScan() {
 
 async function loadHistoryChart(owner, repo) {
     try {
-        const response = await fetch(`/scans/history/${owner}/${repo}`);
+        const response = await authFetch(`/scans/history/${owner}/${repo}`);
         const data = await response.json();
         const validHistory = data.filter(entry => entry.risk_score !== null);
         const labels = validHistory.map(entry => formatDate(entry.scanned_at));
@@ -277,13 +277,13 @@ async function loadHistoryChart(owner, repo) {
 
 async function loadHistory() {
     try {
-        const response = await fetch("/scans");
+        const response = await authFetch("/scans");
         const scans = await response.json();
         historyBody.innerHTML = "";
         if (scans.length === 0) {
             historyBody.innerHTML = `
                 <tr>
-                    <td colspan="3" style="text-align:center;">No previous scans.</td>
+                    <td colspan="2" style="text-align:center;">No previous scans.</td>
                 </tr>
             `;
             return;
@@ -291,7 +291,7 @@ async function loadHistory() {
         scans.reverse().forEach(scan => {
             const row = document.createElement("tr");
             row.innerHTML = `
-                <td>#${scan.id}</td>
+                
                 <td>${scan.owner}/${scan.repo}</td>
                 <td>${formatDate(scan.scanned_at)}</td>
                 <td>

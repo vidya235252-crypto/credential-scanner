@@ -177,6 +177,10 @@ def get_remediation_map():
         "default": remediation.DEFAULT_RECOMMENDATIONS
     }
 
+@app.get("/login")
+def serve_login_page():
+    return FileResponse("static/login.html")
+
 @app.websocket("/ws/test")
 async def websocket_test(websocket: WebSocket):
     await websocket.accept()
