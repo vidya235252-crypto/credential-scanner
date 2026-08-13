@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepoSentinel | Sign In</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+<div class="container auth-container">
+    <div class="panel auth-panel">
+        <div class="logo">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h1>RepoSentinel</h1>
+        </div>
+        <div class="auth-tabs">
+            <button id="loginTab" class="auth-tab active" type="button">Login</button>
+            <button id="signupTab" class="auth-tab" type="button">Sign Up</button>
+        </div>
+        <form id="authForm">
+            <input id="emailInput" type="email" placeholder="Email" autocomplete="username" required>
+            <input id="passwordInput" type="password" placeholder="Password" autocomplete="current-password" required>
+            <button type="submit" id="authSubmitBtn">Login</button>
+        </form>
+        <div id="authStatus" class="status idle"></div>
+    </div>
+</div>
+<script src="/static/login.js"></script>
+</body>
+</html>
