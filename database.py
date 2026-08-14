@@ -28,11 +28,6 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN github_id INTEGER")
-    except sqlite3.OperationalError:
-        pass
-    
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS findings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,12 +51,18 @@ def init_db():
 """)
 
     try:
+        cursor.execute("ALTER TABLE users ADD COLUMN github_id INTEGER")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
         cursor.execute("ALTER TABLE scans ADD COLUMN user_id INTEGER")
     except sqlite3.OperationalError:
         pass
     
     connection.commit()
     connection.close()
+
 
 def save_scan(owner, repo, findings, skipped_count, risk_score, user_id):
     connection = get_connection()
