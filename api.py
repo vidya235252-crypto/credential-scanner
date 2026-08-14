@@ -101,7 +101,7 @@ def github_callback(code: str, state: str, request: Request):
 @app.post("/auth/login")
 def login(request: LoginRequest):
     user = database.get_user_by_email(request.email)
-    if not user or not auth.verify_password(request.password, user[2]):
+    if not user or not user[2] or not auth.verify_password(request.password, user[2]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = auth.create_access_token(user[0], user[1])
     return {"access_token": token, "token_type": "bearer"}
