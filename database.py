@@ -43,8 +43,13 @@ def init_db():
             email TEXT UNIQUE,
             password_hash TEXT,
             github_id INTEGER,
+            github_access_token TEXT,
             created_at TEXT
         )
+    """)
+
+    cursor.execute("""
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS github_access_token TEXT
     """)
 
     connection.commit()
@@ -161,6 +166,19 @@ def clear_scans_for_repo(owner, repo, user_id):
     connection.close()
 
 
+def create_user_from_github(email, github_id, github_access_token):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute(
+        "INSERT INTO users (email, password_hash, github_id, github_access_token, created_at) VALUES (%s, NULL, %s, %s, NOW()) RETURNING id",
+        (email, github_id, github_access_token)
+    )
+    user_id = cursor.fetchone()[0]
+    connection.commit()
+    cursor.close()
+    connection.close()
+    return user_id
+
 def get_user_by_github_id(github_id):
     connection = get_connection()
     cursor = connection.cursor()
@@ -170,25 +188,23 @@ def get_user_by_github_id(github_id):
     connection.close()
     return row
 
-
-def create_user_from_github(email, github_id):
+def link_github_to_user(user_id, github_id, github_access_token):
     connection = get_connection()
     cursor = connection.cursor()
     cursor.execute(
-        "INSERT INTO users (email, password_hash, github_id, created_at) VALUES (%s, NULL, %s, NOW()) RETURNING id",
-        (email, github_id)
+        "UPDATE users SET github_id = %s, github_access_token = %s WHERE id = %s",
+        (github_id, github_access_token, user_id)
     )
-    user_id = cursor.fetchone()[0]
     connection.commit()
     cursor.close()
     connection.close()
-    return user_id
 
 
-def link_github_to_user(user_id, github_id):
+def get_github_access_token(user_id):
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute("UPDATE users SET github_id = %s WHERE id = %s", (github_id, user_id))
-    connection.commit()
+    cursor.execute("SELECT github_access_token FROM users WHERE id = %s", (user_id,))
+    row = cursor.fetchone()
     cursor.close()
     connection.close()
+    return row[0] if row else None

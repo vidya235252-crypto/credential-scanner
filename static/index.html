@@ -69,6 +69,20 @@
 
         </div>
 
+        <div id="repoPickerWrapper" class="hidden" style="margin-top: 12px;">
+    <label for="repoPicker" style="display: block; margin-bottom: 8px; color: var(--muted); font-size: 13px;">
+        Or pick from your GitHub repos:
+    </label>
+    <select id="repoPicker" style="width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-light); color: var(--text); font-size: 14px;">
+        <option value="">Select a repository...</option>
+    </select>
+</div>
+<div id="connectGithubPrompt" class="hidden" style="margin-top: 12px;">
+    <a href="/auth/github/login" class="github-btn" style="max-width: 260px;">
+        <i class="fa-brands fa-github"></i> Connect GitHub to browse your repos
+    </a>
+</div>
+
         <small class="hint">
             Example: torvalds/linux
         </small>

@@ -48,7 +48,7 @@ def build_github_authorize_url(state):
     params = {
         "client_id": GITHUB_OAUTH_CLIENT_ID,
         "redirect_uri": GITHUB_OAUTH_REDIRECT_URI,
-        "scope": "read:user user:email",
+        "scope": "read:user user:email public_repo",
         "state": state
     }
     return "https://github.com/login/oauth/authorize?" + urllib.parse.urlencode(params)

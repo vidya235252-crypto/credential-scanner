@@ -26,6 +26,43 @@ repoInput.addEventListener("keypress", function (e) {
     }
 });
 
+async function loadGithubRepoPicker() {
+    const wrapper = document.getElementById("repoPickerWrapper");
+    const prompt = document.getElementById("connectGithubPrompt");
+    const picker = document.getElementById("repoPicker");
+    try {
+        const response = await authFetch("/github/repos");
+        const data = await response.json();
+
+        if (!data.connected || data.repos.length === 0) {
+            wrapper.classList.add("hidden");
+            prompt.classList.remove("hidden");
+            return;
+        }
+
+        prompt.classList.add("hidden");
+        wrapper.classList.remove("hidden");
+        picker.innerHTML = '<option value="">Select a repository...</option>';
+        data.repos.forEach(repo => {
+            const option = document.createElement("option");
+            option.value = repo.full_name;
+            option.textContent = repo.full_name;
+            picker.appendChild(option);
+        });
+
+        picker.addEventListener("change", function () {
+            if (picker.value) {
+                repoInput.value = picker.value;
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        wrapper.classList.add("hidden");
+        prompt.classList.add("hidden");
+    }
+}
+
+
 const logoutBtn = document.getElementById("logoutBtn");
 if (logoutBtn) {
     logoutBtn.addEventListener("click", function () {
@@ -333,3 +370,4 @@ function formatDate(dateString) {
 }
 
 loadHistory();
+loadGithubRepoPicker();

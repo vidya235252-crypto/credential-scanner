@@ -84,13 +84,14 @@ def github_callback(code: str, state: str, request: Request):
     existing_by_github = database.get_user_by_github_id(github_user["github_id"])
     if existing_by_github:
         user_id, user_email = existing_by_github[0], existing_by_github[1]
+        database.link_github_to_user(user_id, github_user["github_id"], github_access_token)
     else:
         existing_by_email = database.get_user_by_email(github_user["email"])
         if existing_by_email:
-            database.link_github_to_user(existing_by_email[0], github_user["github_id"])
+            database.link_github_to_user(existing_by_email[0], github_user["github_id"], github_access_token)
             user_id, user_email = existing_by_email[0], existing_by_email[1]
         else:
-            user_id = database.create_user_from_github(github_user["email"], github_user["github_id"])
+            user_id = database.create_user_from_github(github_user["email"], github_user["github_id"], github_access_token)
             user_email = github_user["email"]
 
     jwt_token = auth.create_access_token(user_id, user_email)
@@ -202,6 +203,18 @@ def scan_history(owner: str, repo: str, current_user: dict = Depends(auth.get_cu
             "risk_score": row[2]
         })
     return history
+
+@app.get("/github/repos")
+def get_github_repos(current_user: dict = Depends(auth.get_current_user)):
+    token = database.get_github_access_token(current_user["id"])
+    if not token:
+        return {"connected": False, "repos": []}
+
+    result = github_fetch.fetch_user_public_repos(token)
+    if "error" in result:
+        return {"connected": False, "repos": [], "error": result["error"]}
+
+    return {"connected": True, "repos": result["repos"]}
 
 @app.get("/")
 def serve_frontend():

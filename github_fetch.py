@@ -99,3 +99,22 @@ def check_hygiene(file_paths):
         "has_gitignore": has_gitignore,
         "has_license": has_license
     }
+
+def fetch_user_public_repos(github_access_token):
+    headers = {"Authorization": f"Bearer {github_access_token}"}
+    response = requests.get(
+        "https://api.github.com/user/repos",
+        headers=headers,
+        params={"type": "owner", "sort": "updated", "per_page": 100}
+    )
+    data = response.json()
+
+    if isinstance(data, dict) and "message" in data:
+        return {"error": data["message"]}
+
+    repos = [
+        {"owner": repo["owner"]["login"], "repo": repo["name"], "full_name": repo["full_name"]}
+        for repo in data
+        if not repo.get("private", False)
+    ]
+    return {"repos": repos}
