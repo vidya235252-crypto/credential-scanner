@@ -79,6 +79,11 @@ def scan_one_file(file, owner, repo, progress_queue=None):
 
 def scan_repo(owner, repo, progress_queue=None):
     repo_info = github_fetch.get_repo_info(owner, repo)
+
+    if "default_branch" not in repo_info:
+        error_message = repo_info.get("message", "Repository not found or inaccessible")
+        raise ValueError(f"Could not access {owner}/{repo}: {error_message}")
+
     branch = repo_info["default_branch"]
 
     files = github_fetch.get_file_list(owner, repo, branch)
