@@ -1,36 +1,32 @@
-import sqlite3
+import os
+import psycopg2
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def get_connection():
-    connection = sqlite3.connect("scanner.db")
-    return connection
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 def init_db():
     connection = get_connection()
     cursor = connection.cursor()
-    
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS scans (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             owner TEXT,
             repo TEXT,
             scanned_at TEXT,
-            skipped_count INTEGER
+            skipped_count INTEGER,
+            findings_count INTEGER,
+            risk_score INTEGER,
+            user_id INTEGER
         )
     """)
-    
-    try:
-        cursor.execute("ALTER TABLE scans ADD COLUMN findings_count INTEGER")
-    except sqlite3.OperationalError:
-        pass
-    
-    try:
-        cursor.execute("ALTER TABLE scans ADD COLUMN risk_score INTEGER")
-    except sqlite3.OperationalError:
-        pass
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS findings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             scan_id INTEGER,
             file TEXT,
             type TEXT,
@@ -42,144 +38,135 @@ def init_db():
     """)
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE,
-        password_hash TEXT,
-        created_at TEXT
-    )
-""")
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email TEXT UNIQUE,
+            password_hash TEXT,
+            github_id INTEGER,
+            created_at TEXT
+        )
+    """)
 
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN github_id INTEGER")
-    except sqlite3.OperationalError:
-        pass
-
-    try:
-        cursor.execute("ALTER TABLE scans ADD COLUMN user_id INTEGER")
-    except sqlite3.OperationalError:
-        pass
-    
     connection.commit()
+    cursor.close()
     connection.close()
-
 
 def save_scan(owner, repo, findings, skipped_count, risk_score, user_id):
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
-        "INSERT INTO scans (owner, repo, scanned_at, skipped_count, findings_count, risk_score, user_id) VALUES (?, ?, datetime('now'), ?, ?, ?, ?)",
+        "INSERT INTO scans (owner, repo, scanned_at, skipped_count, findings_count, risk_score, user_id) VALUES (%s, %s, NOW(), %s, %s, %s, %s) RETURNING id",
         (owner, repo, skipped_count, len(findings), risk_score, user_id)
     )
-    
-    scan_id = cursor.lastrowid
-    
+    scan_id = cursor.fetchone()[0]
+
     for finding in findings:
         severity = "HIGH" if finding["method"] == "pattern" else "MEDIUM"
         cursor.execute(
-            "INSERT INTO findings (scan_id, file, type, match, method, severity) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO findings (scan_id, file, type, match, method, severity) VALUES (%s, %s, %s, %s, %s, %s)",
             (scan_id, finding["file"], finding["type"], finding["match"], finding["method"], severity)
         )
-    
+
     connection.commit()
+    cursor.close()
     connection.close()
     return scan_id
-
-def get_all_scans(user_id):
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute(
-        "SELECT id, owner, repo, scanned_at, skipped_count FROM scans WHERE user_id = ? ORDER BY scanned_at DESC",
-        (user_id,)
-    )
-    rows = cursor.fetchall()
-    connection.close()
-    return rows
 
 def create_user(email, password_hash):
     connection = get_connection()
     cursor = connection.cursor()
     cursor.execute(
-        "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, datetime('now'))",
+        "INSERT INTO users (email, password_hash, created_at) VALUES (%s, %s, NOW()) RETURNING id",
         (email, password_hash)
     )
-    user_id = cursor.lastrowid
+    user_id = cursor.fetchone()[0]
     connection.commit()
+    cursor.close()
     connection.close()
     return user_id
+
+def get_all_scans(user_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT id, owner, repo, scanned_at, skipped_count FROM scans WHERE user_id = %s ORDER BY scanned_at DESC",
+        (user_id,)
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return rows
 
 
 def get_user_by_email(email):
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute("SELECT id, email, password_hash FROM users WHERE email = ?", (email,))
+    cursor.execute("SELECT id, email, password_hash FROM users WHERE email = %s", (email,))
     row = cursor.fetchone()
+    cursor.close()
     connection.close()
     return row
+
 
 def get_scan_findings(scan_id, user_id):
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute("SELECT user_id FROM scans WHERE id = ?", (scan_id,))
+    cursor.execute("SELECT user_id FROM scans WHERE id = %s", (scan_id,))
     owner_row = cursor.fetchone()
     if not owner_row or owner_row[0] != user_id:
+        cursor.close()
         connection.close()
         return None
-    cursor.execute("SELECT file, type, match, method, severity FROM findings WHERE scan_id = ?", (scan_id,))
+    cursor.execute("SELECT file, type, match, method, severity FROM findings WHERE scan_id = %s", (scan_id,))
     rows = cursor.fetchall()
+    cursor.close()
     connection.close()
     return rows
 
-if __name__ == "__main__":
-    init_db()
-    print("Database initialized.")
-    fake_findings = [
-        {"file": "config.py", "type": "Slack Token", "match": "xoxb-fake", "method": "pattern"}
-    ]
-    scan_id = save_scan("testowner", "testrepo", fake_findings, 0)
-    print("Saved scan with id:", scan_id)
-    
-    print(get_all_scans())
-    print(get_scan_findings(scan_id))
 
 def get_scan_history_for_repo(owner, repo, user_id):
     connection = get_connection()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT scanned_at, findings_count, risk_score FROM scans WHERE owner = ? AND repo = ? AND user_id = ? ORDER BY scanned_at ASC",
+        "SELECT scanned_at, findings_count, risk_score FROM scans WHERE owner = %s AND repo = %s AND user_id = %s ORDER BY scanned_at ASC",
         (owner, repo, user_id)
     )
     rows = cursor.fetchall()
+    cursor.close()
     connection.close()
     return rows
+
 
 def clear_scans_for_repo(owner, repo, user_id):
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT id FROM scans WHERE owner = ? AND repo = ? AND user_id = ?",
+        "SELECT id FROM scans WHERE owner = %s AND repo = %s AND user_id = %s",
         (owner, repo, user_id)
     )
     scan_ids = [row[0] for row in cursor.fetchall()]
 
     for scan_id in scan_ids:
-        cursor.execute("DELETE FROM findings WHERE scan_id = ?", (scan_id,))
+        cursor.execute("DELETE FROM findings WHERE scan_id = %s", (scan_id,))
 
     cursor.execute(
-        "DELETE FROM scans WHERE owner = ? AND repo = ? AND user_id = ?",
+        "DELETE FROM scans WHERE owner = %s AND repo = %s AND user_id = %s",
         (owner, repo, user_id)
     )
 
     connection.commit()
+    cursor.close()
     connection.close()
+
 
 def get_user_by_github_id(github_id):
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute("SELECT id, email, password_hash, github_id FROM users WHERE github_id = ?", (github_id,))
+    cursor.execute("SELECT id, email, password_hash, github_id FROM users WHERE github_id = %s", (github_id,))
     row = cursor.fetchone()
+    cursor.close()
     connection.close()
     return row
 
@@ -188,11 +175,12 @@ def create_user_from_github(email, github_id):
     connection = get_connection()
     cursor = connection.cursor()
     cursor.execute(
-        "INSERT INTO users (email, password_hash, github_id, created_at) VALUES (?, NULL, ?, datetime('now'))",
+        "INSERT INTO users (email, password_hash, github_id, created_at) VALUES (%s, NULL, %s, NOW()) RETURNING id",
         (email, github_id)
     )
-    user_id = cursor.lastrowid
+    user_id = cursor.fetchone()[0]
     connection.commit()
+    cursor.close()
     connection.close()
     return user_id
 
@@ -200,7 +188,7 @@ def create_user_from_github(email, github_id):
 def link_github_to_user(user_id, github_id):
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute("UPDATE users SET github_id = ? WHERE id = ?", (github_id, user_id))
+    cursor.execute("UPDATE users SET github_id = %s WHERE id = %s", (github_id, user_id))
     connection.commit()
+    cursor.close()
     connection.close()
-    

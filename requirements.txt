@@ -6,3 +6,4 @@ python-dotenv
 pytest
 pyjwt
 bcrypt
+psycopg2-binary
