@@ -15,7 +15,7 @@ I built this project to get hands-on experience with cybersecurity, APIs, backen
 * Gives remediation suggestions for detected credentials
 * Shows the commit that introduced a finding when available
 * Checks repository security hygiene such as `.gitignore` and license files
-* Supports authenticated users and per-user scan history
+* Supports authenticated users and per-user scan history, including GitHub OAuth login
 * Compares findings between two repositories
 * Shows real-time scan progress using WebSockets
 * Supports light and dark themes
@@ -68,7 +68,7 @@ Pattern Detection    Entropy Detection
 
 **Database**
 
-* SQLite
+* PostgreSQL
 
 **Other**
 
@@ -118,12 +118,17 @@ Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+This project requires a local PostgreSQL installation. Create a database (e.g. `credential_scanner`) and set `DATABASE_URL` accordingly.
 
 Create a `.env` file:
 
 ```env
 GITHUB_TOKEN=your_github_token
 JWT_SECRET_KEY=your_generated_secret
+DATABASE_URL=postgresql://postgres:your_password@localhost:5432/credential_scanner
+GITHUB_OAUTH_CLIENT_ID=your_client_id
+GITHUB_OAUTH_CLIENT_SECRET=your_client_secret
+GITHUB_OAUTH_REDIRECT_URI=http://localhost:8000/auth/github/callback
 ```
 
 Generate a JWT secret:
@@ -155,7 +160,6 @@ Current tests cover the main detection and scoring logic, including pattern matc
 * Detected credentials are not checked for validity.
 * Confidence scoring currently uses fixed rules.
 * CI/CD integration is not available yet.
-* The hosted demo uses SQLite on Render's ephemeral filesystem, so accounts and scan history may not persist permanently.
 
 ## Future Improvements
 
