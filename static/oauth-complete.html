@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Signing you in...</title>
+</head>
+<body>
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+    localStorage.setItem("access_token", token);
+    window.location.href = "/dashboard";   // was "/"
+} else {
+        window.location.href = "/login";
+    }
+</script>
+</body>
+</html>

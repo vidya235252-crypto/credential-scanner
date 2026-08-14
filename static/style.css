@@ -699,3 +699,40 @@ footer {
     text-align: center;
     margin-top: 28px;
 }
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin: 18px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid var(--border);
+}
+
+.auth-divider span {
+    padding: 0 12px;
+}
+
+.github-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 10px;
+    background: #24292f;
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    transition: .2s;
+}
+
+.github-btn:hover {
+    background: #32383f;
+}

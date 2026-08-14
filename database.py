@@ -27,6 +27,11 @@ def init_db():
         cursor.execute("ALTER TABLE scans ADD COLUMN risk_score INTEGER")
     except sqlite3.OperationalError:
         pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN github_id INTEGER")
+    except sqlite3.OperationalError:
+        pass
     
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS findings (
@@ -166,6 +171,35 @@ def clear_scans_for_repo(owner, repo, user_id):
         (owner, repo, user_id)
     )
 
+    connection.commit()
+    connection.close()
+
+def get_user_by_github_id(github_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT id, email, password_hash, github_id FROM users WHERE github_id = ?", (github_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return row
+
+
+def create_user_from_github(email, github_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute(
+        "INSERT INTO users (email, password_hash, github_id, created_at) VALUES (?, NULL, ?, datetime('now'))",
+        (email, github_id)
+    )
+    user_id = cursor.lastrowid
+    connection.commit()
+    connection.close()
+    return user_id
+
+
+def link_github_to_user(user_id, github_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE users SET github_id = ? WHERE id = ?", (github_id, user_id))
     connection.commit()
     connection.close()
     

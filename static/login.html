@@ -33,7 +33,11 @@
             <input id="passwordInput" type="password" placeholder="Password" autocomplete="current-password" required>
             <button type="submit" id="authSubmitBtn">Login</button>
         </form>
-        <div id="authStatus" class="status idle"></div>
+<div class="auth-divider"><span>or</span></div>
+<a href="/auth/github/login" class="github-btn">
+    <i class="fa-brands fa-github"></i> Continue with GitHub
+</a>
+<div id="authStatus" class="status idle"></div>
     </div>
 </div>
 <script src="/static/login.js"></script>
