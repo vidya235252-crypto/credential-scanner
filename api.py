@@ -15,6 +15,7 @@ import auth
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 import secrets
+from starlette.concurrency import run_in_threadpool
 
 app = FastAPI()
 
@@ -284,7 +285,7 @@ async def websocket_scan(websocket: WebSocket):
     thread = threading.Thread(target=run_scan)
     thread.start()
     while True:
-        update = progress_queue.get()
+        update = await run_in_threadpool(progress_queue.get)
         if update.get("status") == "final_result":
             findings, skipped, files_scanned, risk_score, hygiene, density = update["result"]
             await websocket.send_json({
