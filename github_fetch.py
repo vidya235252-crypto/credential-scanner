@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+REQUEST_TIMEOUT = 15
 
 HEADERS = {
     "Authorization": f"token {GITHUB_TOKEN}"
@@ -13,13 +14,13 @@ HEADERS = {
 
 def get_repo_info(owner, repo):
     url = f"https://api.github.com/repos/{owner}/{repo}"
-    response = requests.get(url, headers=HEADERS)
+    response = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
     data = response.json()
     return data
 
 def get_file_list(owner, repo, branch="main"):
     tree_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
-    tree_response = requests.get(tree_url, headers=HEADERS)
+    tree_response = requests.get(tree_url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
     tree_data = tree_response.json()
     
     if tree_data.get("truncated"):
@@ -32,7 +33,7 @@ def get_file_list(owner, repo, branch="main"):
     return files
 
 def get_file_content(blob_url):
-    blob_response = requests.get(blob_url, headers=HEADERS)
+    blob_response = requests.get(blob_url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
     blob_data = blob_response.json()
     encoded_content = blob_data["content"]
     decoded_bytes = base64.b64decode(encoded_content)
@@ -42,7 +43,7 @@ def get_file_content(blob_url):
 def get_file_history(owner, repo, path):
     url = f"https://api.github.com/repos/{owner}/{repo}/commits"
     params = {"path": path}
-    response = requests.get(url, headers=HEADERS, params=params)
+    response = requests.get(url, headers=HEADERS, params=params, timeout=REQUEST_TIMEOUT)
     return response.json()
 
 def get_introducing_commit(owner, repo, path):
@@ -74,7 +75,7 @@ if __name__ == "__main__":
     print(content)
 
 def check_rate_limit():
-    response = requests.get("https://api.github.com/rate_limit", headers=HEADERS)
+    response = requests.get("https://api.github.com/rate_limit", headers=HEADERS, timeout=REQUEST_TIMEOUT)
     data = response.json()
     remaining = data["rate"]["remaining"]
     limit = data["rate"]["limit"]
@@ -82,7 +83,7 @@ def check_rate_limit():
 
 def file_exists(owner, repo, path):
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-    response = requests.get(url, headers=HEADERS)
+    response = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
     return response.status_code == 200
 
 def check_hygiene(file_paths):
@@ -105,7 +106,7 @@ def fetch_user_public_repos(github_access_token):
     response = requests.get(
         "https://api.github.com/user/repos",
         headers=headers,
-        params={"type": "owner", "sort": "updated", "per_page": 100}
+        params={"type": "owner", "sort": "updated", "per_page": 100}, timeout=REQUEST_TIMEOUT
     )
     data = response.json()
 
