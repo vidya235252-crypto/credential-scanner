@@ -19,6 +19,7 @@ I built this project to get hands-on experience with cybersecurity, APIs, backen
 * Compares findings between two repositories
 * Shows real-time scan progress using WebSockets
 * Supports light and dark themes
+* Pick repos directly from your connected GitHub account via a repo picker
 
 ## How It Works
 
