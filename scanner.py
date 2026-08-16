@@ -77,7 +77,7 @@ def scan_one_file(file, owner, repo, progress_queue=None):
     
     return {"findings": file_findings}
 
-def scan_repo(owner, repo, progress_queue=None):
+def scan_repo(owner, repo, progress_queue=None, history_limit=30):
     repo_info = github_fetch.get_repo_info(owner, repo)
 
     if "default_branch" not in repo_info:
@@ -105,6 +105,38 @@ def scan_repo(owner, repo, progress_queue=None):
             skipped_files.append(result["skipped"])
         else:
             findings.extend(result["findings"])
+
+    if progress_queue:
+        progress_queue.put({"status": "scanning_history"})
+
+    commits = github_fetch.get_recent_commits(owner, repo, limit=history_limit)
+    for commit in commits:
+        sha = commit.get("sha")
+        if not sha:
+            continue
+        diff_files = github_fetch.get_commit_diff(owner, repo, sha)
+        for diff_file in diff_files:
+            patch = diff_file.get("patch")
+            if not patch:
+                continue
+            historical_matches = scan_commit_diff(patch)
+            for match in historical_matches:
+                findings.append({
+                    "file": diff_file.get("filename", "unknown"),
+                    "type": match["type"],
+                    "match": match["match"],
+                    "method": match["method"],
+                    "entropy": match.get("entropy"),
+                    "historical": True,
+                    "commit": {
+                        "sha": sha,
+                        "author": commit["commit"]["author"]["name"],
+                        "date": commit["commit"]["author"]["date"],
+                        "message": commit["commit"]["message"]
+                    }
+                })
+        if progress_queue:
+            progress_queue.put({"status": "history_scanned", "commit": sha[:7]})
     
     risk_score = risk.calculate_risk_score(findings)
     density = round((len(findings) / len(files)) * 100, 2) if len(files) > 0 else 0
@@ -156,6 +188,32 @@ def compare_repos(owner1, repo1, owner2, repo2):
             "shared_finding_types": in_both
         }
     }
+
+def scan_commit_diff(patch_text):
+    if not patch_text:
+        return []
+    
+    added_lines = [
+        line[1:] for line in patch_text.split("\n")
+        if line.startswith("+") and not line.startswith("+++")
+    ]
+    added_text = "\n".join(added_lines)
+    
+    findings = []
+    pattern_matches = patterns.scan_text(added_text)
+    entropy_matches = entropy.scan_text(added_text)
+    
+    for match in pattern_matches:
+        findings.append({
+            "type": match["type"], "match": match["match"], "method": "pattern"
+        })
+    for match in entropy_matches:
+        findings.append({
+            "type": "High entropy string", "match": match["string"],
+            "entropy": match["entropy"], "method": "entropy"
+        })
+    
+    return findings
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

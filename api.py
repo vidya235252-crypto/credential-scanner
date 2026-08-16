@@ -111,7 +111,7 @@ def login(request: LoginRequest):
 @app.post("/scan")
 def trigger_scan(request: ScanRequest, current_user: dict = Depends(auth.get_current_user)):
     remaining, limit = github_fetch.check_rate_limit()
-    if remaining < 50:
+    if remaining < 100:
         raise HTTPException(status_code=429, detail="Low on GitHub API requests, try again later")
     
     try:
@@ -275,6 +275,10 @@ async def websocket_scan(websocket: WebSocket):
 
     def run_scan():
         try:
+            remaining, limit = github_fetch.check_rate_limit()
+            if remaining < 100:
+                progress_queue.put({"status": "error", "message": "Low on GitHub API requests, try again later"})
+                return
             result = scanner.scan_repo(owner, repo, progress_queue=progress_queue)
             findings, skipped, files_scanned, risk_score, hygiene, density = result
             database.save_scan(owner, repo, findings, len(skipped), risk_score, user_id)

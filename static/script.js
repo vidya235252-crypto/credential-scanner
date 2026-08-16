@@ -147,12 +147,16 @@ function buildFindingCard(finding, confidenceInfo) {
         : "Unknown";
     const confidenceCell = buildConfidenceCell(confidenceInfo);
     const remediationCell = buildRemediationCell(finding.type);
+    const historyBadge = finding.historical
+        ? `<span class="badge" style="background: var(--surface-light); color: var(--muted); border: 1px solid var(--border);"><i class="fa-solid fa-clock-rotate-left"></i> History</span>`
+        : "";
     const card = document.createElement("div");
     card.className = "finding-card";
     card.innerHTML = `
         <div class="finding-card-header">
             <span class="badge ${severity.toLowerCase()}">${severity}</span>
             <span class="finding-type">${finding.type}</span>
+            ${historyBadge}
             ${confidenceCell}
         </div>
         <div class="finding-card-body">
@@ -262,7 +266,14 @@ async function runScan() {
             resultsWrapper.classList.remove("hidden");
             await loadRemediationMap();
             const confidenceResults = await fetchConfidence(data.findings);
+            const currentKeys = new Set(
+                data.findings.filter(f => !f.historical).map(f => `${f.file}|${f.type}|${f.match}`)
+            );
             data.findings.forEach((finding, index) => {
+                const key = `${finding.file}|${finding.type}|${finding.match}`;
+                if (finding.historical && currentKeys.has(key)) {
+                    return;
+                }
                 const card = buildFindingCard(finding, confidenceResults[index]);
                 resultsCards.appendChild(card);
             });

@@ -119,3 +119,16 @@ def fetch_user_public_repos(github_access_token):
         if not repo.get("private", False)
     ]
     return {"repos": repos}
+
+def get_recent_commits(owner, repo, limit=30):
+    url = f"https://api.github.com/repos/{owner}/{repo}/commits"
+    params = {"per_page": limit}
+    response = requests.get(url, headers=HEADERS, params=params, timeout=REQUEST_TIMEOUT)
+    return response.json()
+
+
+def get_commit_diff(owner, repo, sha):
+    url = f"https://api.github.com/repos/{owner}/{repo}/commits/{sha}"
+    response = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
+    data = response.json()
+    return data.get("files", [])
